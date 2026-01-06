@@ -79,11 +79,6 @@ songlist/
 │   └── wsgi.py
 
 ├── common/                 # Shared utilities
-│   ├── management/         # Management commands
-│   │   └── commands/
-│   │       ├── seed_genres.py # Seed initial genres
-│   │       ├── seed_users.py  # Seed regular users
-│   │       └── seed_admins.py # Seed admin users
 │   ├── models.py           # Abstract base models
 │   ├── permissions.py      # Custom permissions (RBAC)
 │   ├── pagination.py       # Standard pagination
@@ -101,6 +96,12 @@ songlist/
 │   └── urls.py
 
 ├── music/                  # Songs & playlists
+│   ├── management/         # Management commands
+│   │   └── commands/
+│   │       ├── seed_genres.py # Seed initial genres
+│   │       ├── seed_users.py  # Seed regular users
+│   │       ├── seed_admins.py # Seed admin users
+│   │       └── seed_songs.py  # Seed sample songs
 │   ├── models/             # Application models
 │   │   ├── genre.py
 │   │   ├── song.py
@@ -114,6 +115,7 @@ songlist/
 │   │   ├── song.py
 │   │   ├── playlist.py
 │   │   └── review.py
+│   ├── filters.py          # Query filters for songs
 │   └── urls.py
 ```
 
