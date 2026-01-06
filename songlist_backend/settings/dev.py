@@ -2,13 +2,20 @@ from .base import *
 import os
 
 # Allowed hosts for development
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = os.getenv("DEV_ALLOWED_HOSTS", "").split(",")
 
-# Development database (SQLite)
+DEBUG = os.getenv("DEV_DEBUG", "1") == "1"
+
+# Development database (PostgreSQL)
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DEV_DB_NAME"),
+        "USER": os.getenv("DEV_DB_USER"),
+        "PASSWORD": os.getenv("DEV_DB_PASSWORD"),
+        "HOST": os.getenv("DEV_DB_HOST"),
+        "PORT": os.getenv("DEV_DB_PORT"),
     }
 }
 
+ 

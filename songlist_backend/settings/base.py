@@ -1,6 +1,9 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
+
+from common.constants import PAGE_SIZE
 
 # Load .env variables
 load_dotenv()
@@ -8,19 +11,8 @@ load_dotenv()
 # Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# Environment name
-DJANGO_ENV = os.getenv("DJANGO_ENV", "dev")
-
-# DEBUG depends on environment
-def str_to_bool(value):
-    return value.lower() in ("true", "1", "yes")
-
-# Explicit DEBUG logic using DEV_DEBUG / PROD_DEBUG
-if DJANGO_ENV == "prod":
-    DEBUG = str_to_bool(os.getenv("PROD_DEBUG", "False"))
-else:
-    DEBUG = str_to_bool(os.getenv("DEV_DEBUG", "True"))
-
+# Register your Custom User Model
+AUTH_USER_MODEL = "users.User"
 
 # Secret key
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -34,6 +26,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework.authtoken",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
+    "users",
+    "music",
 ]
 
 # Middleware
@@ -80,13 +77,32 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_PAGINATION_CLASS": "common.pagination.DefaultPagination",
+    "PAGE_SIZE": PAGE_SIZE,
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# Internationalization
+# https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+
 STATIC_URL = "static/"
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
