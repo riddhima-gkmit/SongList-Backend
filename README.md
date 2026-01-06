@@ -14,34 +14,33 @@ This repository contains the **backend REST API**, built using **Django REST Fra
 * Role-based access control (User / Admin)
 * Unique email-based user accounts
 * Object-level permissions (Owner or Admin)
+* **Strict Validation**: Regex-based validation for emails, names, and phone numbers
+
+---
+
+### User Management
+
+*   **Self-Service**: Users manage their own profile (`/users/me`)
+*   **Admin Control**: Admins manage all users (`/users`)
+*   **Safety**: Admins **cannot delete their own account** (must be deleted by another admin)
 
 ---
 
 ### Song Management
 
-* Submit songs for admin approval
-* Song lifecycle management (`PENDING`, `APPROVED`, `REJECTED`)
-* Update song details (approval required)
-* Soft delete support
-* Advanced filtering (artist, genre, album)
+*   **Submission**: Users submit songs for review (`PENDING`)
+*   **Moderation**: Admins approve or reject songs
+*   **Lifecycle**: `PENDING` → `APPROVED` / `REJECTED`
+*   **Protection**: Approved songs cannot be edited without re-approval
+*   **Filtering**: Filter by artist, genre, and album
 
 ---
 
 ### Playlist Management
 
-* Create and manage user playlists
-* Add and remove approved songs
-* Prevent duplicate songs in playlists
-* Soft delete playlists
-
----
-
-### Admin Panel APIs
-
-* Manage users
-* Approve or reject songs
-* Access all songs and playlists
-* System-level overview endpoints
+*   **Personalized**: Users create and manage their own playlists
+*   **Curated Content**: Only `APPROVED` songs can be added
+*   **Admin Access**: Admins can view/delete playlists but **cannot modify** them (create/update/add songs)
 
 ---
 
@@ -61,7 +60,6 @@ This repository contains the **backend REST API**, built using **Django REST Fra
 ## Project Structure
 
 ```
-
 songlist/
 ├── manage.py
 ├── .env
@@ -69,68 +67,54 @@ songlist/
 ├── README.md
 
 ├── pyproject.toml          # uv / project metadata & dependencies
-├── uv.lock                 # Locked dependency versions (auto-generated)
+├── uv.lock                 # Locked dependency versions
 
-├── .venv/                  # Virtual environment created by uv (local only)
-│   ├── bin/
-│   ├── lib/
-│   └── pyvenv.cfg
-
-├── config/                     # Project-level configuration
-│   ├── __init__.py
+├── songlist_backend/       # Project settings & configuration
+│   ├── settings/
+│   │   ├── base.py         # Shared settings
+│   │   ├── dev.py          # Development settings
+│   │   └── prod.py         # Production settings
+│   ├── urls.py
 │   ├── asgi.py
-│   ├── wsgi.py
-│   ├── urls.py
-│   └── settings/
-│       ├── __init__.py
-│       ├── base.py              # Shared settings
-│       ├── dev.py               # Development settings
-│       └── prod.py              # Production settings
+│   └── wsgi.py
 
-├── common/                      # Shared utilities (optional but clean)
-│   ├── __init__.py
-│   ├── permissions.py           # Custom permissions
-│   ├── pagination.py
-│   ├── responses.py             # Standard API responses
-│   └── enums.py                 # Global enums (roles, status)
+├── common/                 # Shared utilities
+│   ├── management/         # Management commands
+│   │   └── commands/
+│   │       ├── seed_genres.py # Seed initial genres
+│   │       ├── seed_users.py  # Seed regular users
+│   │       └── seed_admins.py # Seed admin users
+│   ├── models.py           # Abstract base models
+│   ├── permissions.py      # Custom permissions (RBAC)
+│   ├── pagination.py       # Standard pagination
+│   ├── constants.py        # Global constants
+│   └── enums.py            # Global enums
 
-├── users/                       # Authentication & user management
-│   ├── __init__.py
-│   ├── admin.py                 # Admin panel unused (optional)
-│   ├── apps.py
-│   ├── models.py
-│   ├── serializers.py
-│   ├── views.py
-│   ├── urls.py
-│   ├── permissions.py
-│   ├── enums.py                 # UserRole enum
-│   └── constants.py
+├── users/                  # Authentication & user management
+│   ├── models.py           # User model
+│   ├── serializers/
+│   │   ├── auth.py         # Login/Register serializers
+│   │   └── user.py         # User profile serializers
+│   ├── views/
+│   │   ├── auth.py         # Auth views
+│   │   └── user.py         # User views
+│   └── urls.py
 
-├── music/                       # Songs & playlists
-│   ├── __init__.py
-│   ├── apps.py
-│   ├── models/
-│   │   ├── __init__.py
+├── music/                  # Songs & playlists
+│   ├── models/             # Application models
 │   │   ├── genre.py
 │   │   ├── song.py
 │   │   ├── playlist.py
 │   │   └── playlist_song.py
-│   ├── serializers/
-│   │   ├── __init__.py
-│   │   ├── genre.py
-│   │   ├── song.py
-│   │   └── playlist.py
-│   ├── views/
-│   │   ├── __init__.py
+│   ├── serializers/        # Resource serializers
 │   │   ├── song.py
 │   │   ├── playlist.py
-│   │   └── review.py            # Admin approve/reject logic
-│   ├── urls.py
-│   ├── permissions.py
-│   ├── enums.py                 # SongStatus enum
-│   └── constants.py
-
-
+│   │   └── review.py
+│   ├── views/              # Resource views
+│   │   ├── song.py
+│   │   ├── playlist.py
+│   │   └── review.py
+│   └── urls.py
 ```
 
 ---
@@ -183,7 +167,28 @@ python manage.py createsuperuser
 
 ---
 
-### 6. Start Development Server
+### 6. Data Seeding (Optional)
+
+You can populate the database with initial data using the following commands:
+
+**Seed Genres** (must run first):
+```bash
+python manage.py seed_genres
+```
+
+**Seed Users** (creates 5 regular users):
+```bash
+python manage.py seed_users
+```
+
+**Seed Admins** (creates 5 admin users):
+```bash
+python manage.py seed_admins
+```
+
+---
+
+### 7. Start Development Server
 
 ```bash
 python manage.py runserver
@@ -237,6 +242,8 @@ http://localhost:8000/api/v1/
 Full documentation is available at:
 https://riddhima-gkmit.github.io/SongList-Documentation/
 
+### Postman Collection
+
+A complete Postman collection (`SongList.postman_collection.json`) is included in the root directory for testing all API endpoints.
+
 ---
-
-
