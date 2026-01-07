@@ -25,30 +25,6 @@ class UserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "role", "date_joined"]
 
-    def validate_username(self, value):
-        value = value.strip()
-        if not value:
-            raise serializers.ValidationError("Username cannot be empty or just whitespace.")
-        return value
-
-    def validate_email(self, value):
-        try:
-            email = value.strip().lower()
-            
-            if not email:
-                raise serializers.ValidationError("Email cannot be empty or just whitespace.")
-
-            regex = r"^[a-z0-9._%+-]+@[a-z]+\.[a-z]{2,}$"
-            
-            if not re.match(regex, email):
-                raise serializers.ValidationError("Invalid email format.")
-            return email
-            
-        except serializers.ValidationError:
-            raise
-        except Exception:
-            raise serializers.ValidationError("Invalid email format.")
-
     def validate_first_name(self, value):
         value = value.strip()
         if not value:
@@ -66,14 +42,30 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def validate_phone_no(self, value):
+        # Validate phone number format (digits, spaces, hyphens, leading +)
         if not value:
             return value
+        
         value = value.strip()
+        
         if not value:
             raise serializers.ValidationError("Phone number cannot be empty or just whitespace.")
+            
         if not re.match(r"^\+?[\d\s-]+$", value):
-            raise serializers.ValidationError("Phone number can only contain digits, spaces, hyphens, and a leading plus.")
-        return value
+            raise serializers.ValidationError(
+                "Phone number can only contain digits, spaces, hyphens, and a leading plus."
+            )
+        if value.startswith("0"):
+            value = value[1:]
+            
+        if value.startswith("+91"):
+            value = value[3:]
+
+        digits_count = sum(c.isdigit() for c in value)
+        if digits_count < 10 or digits_count > 10:
+            raise serializers.ValidationError("Phone number must contain 10 digits.")
+        
+        normalized_phone = "+91" + value
 
 
 class ChangePasswordSerializer(serializers.Serializer):

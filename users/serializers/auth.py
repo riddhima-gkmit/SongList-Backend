@@ -28,46 +28,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             "phone_no",
         ]
 
-    def validate_username(self, value):
-        value = value.strip()
-
-        if not value:
-            raise serializers.ValidationError("Username cannot be empty.")
-
-        user = User.objects.filter(username=value).first()
-        if user:
-            if user.deleted_at:
-                raise serializers.ValidationError("This account is disabled, please contact support.")
-            raise serializers.ValidationError("Username already exists.")
-
-        return value
-
-    def validate_email(self, value):
-        # Enforce strict email formatting using regex and lowercase conversion
-        try:
-            email = value.strip().lower()
-            
-            if not email:
-                raise serializers.ValidationError("Email cannot be empty.")
-
-            regex = r"^[a-z0-9._%+-]+@[a-z]+\.[a-z]{2,}$"
-            
-            if not re.match(regex, email):
-                raise serializers.ValidationError("Invalid email format.")
-
-            user = User.objects.filter(email=email).first()
-            if user:
-                if user.deleted_at:
-                    raise serializers.ValidationError("This account is disabled, please contact support.")
-                raise serializers.ValidationError("Email already registered.")
-            
-            return email
-
-        except serializers.ValidationError:
-            raise
-        except Exception:
-            raise serializers.ValidationError("Invalid email format.")
-
     def validate_first_name(self, value):
         value = value.strip()
 

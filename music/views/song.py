@@ -26,9 +26,13 @@ class SongAPIView(APIView):
     def get(self, request):
         """List songs with optional filtering by artist, genre, or album."""
         try:
-            # Admins see all songs
+            # Admins see all songs by default, but can filter by status
             if request.user.is_admin:
                 queryset = Song.objects.all()
+                # Allow admins to filter by status if provided
+                requested_status = request.query_params.get('status', None)
+                if requested_status:
+                    queryset = queryset.filter(status__iexact=requested_status)
             else:
                 # Default: Users see only APPROVED songs
                 # Query param 'status' allows filtering.

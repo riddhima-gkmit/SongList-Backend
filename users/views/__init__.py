@@ -1,4 +1,3 @@
-from .auth import RegisterAPIView, LoginAPIView, LogoutAPIView
 from .user import (
     UserMeAPIView,
     ChangePasswordAPIView,

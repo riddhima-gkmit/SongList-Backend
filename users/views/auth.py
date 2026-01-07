@@ -5,6 +5,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.serializers import ValidationError
 from rest_framework.exceptions import APIException
+from users.models import User
+from django.db.models import Q
 
 from ..serializers import (
     RegisterSerializer,
@@ -22,6 +24,19 @@ class RegisterAPIView(APIView):
 
     def post(self, request):
         try:
+            username = request.data.get('username', None)
+            email = request.data.get('email', None)
+            if username is None or email is None:
+                return Response(
+                    {"message": "username and email is required to register."},
+                    status= status.HTTP_400_BAD_REQUEST
+                )
+            user = User.objects.filter(Q(username=username) | Q(email=email)).first()
+            if user and user.deleted_at:
+                return Response(
+                    {"message": "This account is disabled, please contact support."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )   
             serializer = RegisterSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -39,7 +54,7 @@ class RegisterAPIView(APIView):
 
         except APIException:
             raise
-        except Exception:
+        except Exception as e:
             return Response(
                 {"error": "Registration failed. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
