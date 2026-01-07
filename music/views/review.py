@@ -53,8 +53,10 @@ class SongReviewAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        except Exception:
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response(
-                {"error": "Failed to review song."},
+                {"error": "Failed to review song.", "detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

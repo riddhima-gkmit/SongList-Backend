@@ -72,7 +72,7 @@ class LoginAPIView(APIView):
 
         except APIException:
             raise
-        except Exception:
+        except Exception as e:
             return Response(
                 {"error": "Login failed. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,

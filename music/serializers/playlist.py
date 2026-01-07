@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from music.models.playlist import Playlist
+from music.models.playlist_song import PlaylistSong
 from music.models.song import Song
 from common.enums import SongStatus
 
@@ -43,11 +44,9 @@ class PlaylistSongAddSerializer(serializers.Serializer):
         Checks:
         - Song exists
         - Song is approved
-        - User owns the song
         - Song is not already in playlist
         """
         playlist = self.context["playlist"]
-        user = self.context["request"].user
         song_id = attrs["song_id"]
 
         # Check if song exists
@@ -60,12 +59,8 @@ class PlaylistSongAddSerializer(serializers.Serializer):
         if song.status != SongStatus.APPROVED:
             raise serializers.ValidationError("Only approved songs can be added.")
 
-        # Users can only add their own songs
-        if song.user != user:
-            raise serializers.ValidationError("You can only add your own songs.")
-
         # Prevent duplicate songs in playlist
-        if playlist.songs.filter(id=song.id).exists():
+        if PlaylistSong.objects.filter(playlist=playlist, song=song).exists():
             raise serializers.ValidationError("Song already exists in playlist.")
 
         attrs["song"] = song

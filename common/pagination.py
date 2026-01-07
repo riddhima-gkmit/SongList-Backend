@@ -16,8 +16,8 @@ class DefaultPagination(PageNumberPagination):
                 "count": self.page.paginator.count,
                 "page": self.page.number,
                 "page_size": self.get_page_size(self.request),
-                "next": self.get_next_link(),
-                "previous": self.get_previous_link(),
+                "next": self.page.next_page_number() if self.page.has_next() else None,
+                "previous": self.page.previous_page_number() if self.page.has_previous() else None,
                 "data": data,
             }   
         )

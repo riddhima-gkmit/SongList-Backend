@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.serializers import ValidationError
+from rest_framework.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 
@@ -99,6 +100,12 @@ class PlaylistDetailAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        except PermissionDenied:
+            return Response(
+                {"error": "You do not have permission to access this playlist."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         except Exception:
             return Response(
                 {"error": "Failed to retrieve playlist."},
@@ -140,6 +147,12 @@ class PlaylistDetailAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        except PermissionDenied:
+            return Response(
+                {"error": "You do not have permission to update this playlist."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         except Exception:
             return Response(
                 {"error": "Failed to update playlist."},
@@ -159,6 +172,12 @@ class PlaylistDetailAPIView(APIView):
             return Response(
                 {"error": "Playlist not found."},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+
+        except PermissionDenied:
+            return Response(
+                {"error": "You do not have permission to delete this playlist."},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         except Exception:
@@ -213,6 +232,12 @@ class PlaylistSongAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        except PermissionDenied:
+            return Response(
+                {"error": "You do not have permission to add songs to this playlist."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         except Exception:
             return Response(
                 {"error": "Failed to add song to playlist."},
@@ -246,6 +271,12 @@ class PlaylistSongAPIView(APIView):
             return Response(
                 {"error": "Playlist or song not found."},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+
+        except PermissionDenied:
+            return Response(
+                {"error": "You do not have permission to remove songs from this playlist."},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         except Exception:
