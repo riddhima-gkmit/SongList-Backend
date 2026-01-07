@@ -108,12 +108,23 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Phone number can only contain digits, spaces, hyphens, and a leading plus."
             )
+        if value.startswith("0"):
+            value = value[1:]
             
-        digits_count = sum(c.isdigit() for c in value)
-        if digits_count < 7 or digits_count > 15:
-            raise serializers.ValidationError("Phone number must contain between 7 and 15 digits.")
+        if value.startswith("+91"):
+            value = value[3:]
 
-        return value
+        digits_count = sum(c.isdigit() for c in value)
+        if digits_count < 10 or digits_count > 10:
+            raise serializers.ValidationError("Phone number must contain 10 digits.")
+        
+        normalized_phone = "+91" + value
+        
+        # Check if phone number already exists
+        if User.objects.filter(phone_no=normalized_phone).exists():
+            raise serializers.ValidationError("Phone number already registered.")
+        
+        return normalized_phone
 
     def validate(self, attrs):
         if attrs.get("password") != attrs.get("confirm_password"):
