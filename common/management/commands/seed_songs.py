@@ -4,21 +4,36 @@ from django.db import transaction
 from music.models.song import Song
 from music.models.genre import Genre
 from users.models import User
-from common.enums import SongStatus, UserRole
+from common.enums import UserRole, SongVisibility
+from common.constants import MIN_RELEASE_YEAR
+from django.utils import timezone
+
 
 class Command(BaseCommand):
-    help = 'Seeds the database with 50 Bollywood Hindi songs'
+    help = 'Seeds the database with 50 Bollywood songs'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--count',
+            type=int,
+            default=50,
+            help='Number of songs to create (default: 50)',
+        )
 
     @transaction.atomic
     def handle(self, *args, **kwargs):
-        users = User.objects.filter(role=UserRole.USER)
-        genres = Genre.objects.all()
+        count = kwargs.get('count', 50)
+        
+        # Get users (prefer admins, fallback to listeners)
+        users = User.objects.filter(role=UserRole.SUPER_ADMIN)
+        
+        genres = list(Genre.objects.all())
 
-        if not users.exists():
-            self.stdout.write(self.style.ERROR('No users found. Please run seed_users first.'))
+        if not users:
+            self.stdout.write(self.style.ERROR('No users found. Please run seed_users or seed_admins first.'))
             return
 
-        if not genres.exists():
+        if not genres:
             self.stdout.write(self.style.ERROR('No genres found. Please run seed_genres first.'))
             return
 
@@ -38,7 +53,6 @@ class Command(BaseCommand):
             {"title": "Dil Chahta Hai", "artist": "Shankar Mahadevan", "album": "Dil Chahta Hai", "year": 2001, "duration": 310},
             {"title": "Koi Kahe Kehta Rahe", "artist": "Shankar Mahadevan, Shaan, KK", "album": "Dil Chahta Hai", "year": 2001, "duration": 344},
             {"title": "Zara Sa", "artist": "KK", "album": "Jannat", "year": 2008, "duration": 300},
-            {"title": "Tadpunk", "artist": "KK", "album": "Hum Dil De Chuke Sanam", "year": 1999, "duration": 300}, # Corrected manually
             {"title": "Tadap Tadap", "artist": "KK", "album": "Hum Dil De Chuke Sanam", "year": 1999, "duration": 396},
             {"title": "Mitwa", "artist": "Shafqat Amanat Ali", "album": "Kabhi Alvida Naa Kehna", "year": 2006, "duration": 381},
             {"title": "Channa Mereya", "artist": "Arijit Singh", "album": "Ae Dil Hai Mushkil", "year": 2016, "duration": 289},
@@ -80,37 +94,40 @@ class Command(BaseCommand):
         created_count = 0
         skipped_count = 0
 
+        self.stdout.write(f'Creating {len(sample_songs)} songs...')
+        
         for song_data in sample_songs:
-            # Check if song exists
+            # Check if song already exists
             if Song.objects.filter(title__iexact=song_data["title"], artist__iexact=song_data["artist"]).exists():
                 skipped_count += 1
                 continue
-
+            
             # Pick random user and genre
             user = random.choice(users)
             genre = random.choice(genres)
             
-            # Weighted random status: 70% Approved, 20% Pending, 10% Rejected
-            rand_val = random.random()
-            if rand_val < 0.7:
-                status = SongStatus.APPROVED
-                rejection_reason = ""
-            elif rand_val < 0.9:
-                status = SongStatus.PENDING
-                rejection_reason = ""
-            else:
-                status = SongStatus.REJECTED
-                rejection_reason = "Duplicate entry or low quality."
+            # Create only GLOBAL songs (no tenant required)
+            tenant = None
+            visibility = SongVisibility.GLOBAL
 
-            Song.objects.create(
-                user=user,
-                genre=genre,
-                status=status,
-                rejection_reason=rejection_reason,
-                **song_data
-            )
-            created_count += 1
+            try:
+                Song.objects.create(
+                    user=user,
+                    genre=genre,
+                    title=song_data["title"],
+                    artist=song_data["artist"],
+                    album=song_data["album"],
+                    release_year=song_data["year"],
+                    duration=song_data["duration"],
+                    tenant=tenant,
+                    visibility=visibility,
+                )
+                created_count += 1
+                    
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'Error creating song "{song_data["title"]}": {str(e)}'))
+                skipped_count += 1
 
-        self.stdout.write(self.style.SUCCESS(f'Successfully processed 50 Bollywood songs.'))
+        self.stdout.write(self.style.SUCCESS(f'Successfully processed {count} songs.'))
         self.stdout.write(self.style.SUCCESS(f'Created: {created_count}'))
-        self.stdout.write(self.style.WARNING(f'Skipped (Already Exists): {skipped_count}'))
+        self.stdout.write(self.style.WARNING(f'Skipped: {skipped_count}'))
