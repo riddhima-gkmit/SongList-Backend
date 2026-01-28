@@ -1,6 +1,3 @@
-"""
-Tenant model for multi-tenant architecture.
-"""
 from django.db import models
 from common.models import SoftDeleteModel
 from tenants.managers import ActiveTenantManager, AllTenantsManager
