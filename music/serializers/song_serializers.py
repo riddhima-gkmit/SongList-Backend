@@ -1,14 +1,12 @@
 from rest_framework import serializers
 from django.utils import timezone
-from music.models.song import Song
-from common.enums import SongStatus
+from music.models.song_models import Song
 
 
 class SongSerializer(serializers.ModelSerializer):
     """
     Serializer for Song creation and retrieval.
     """
-
     class Meta:
         model = Song
         fields = [
@@ -18,22 +16,19 @@ class SongSerializer(serializers.ModelSerializer):
             "title",
             "artist",
             "album",
+            "tenant",
             "duration",
+            "visibility",
             "release_year",
-            "status",
-            "rejection_reason",
             "created_at",
             "updated_at",
         ]
         read_only_fields = [
             "id",
             "user",
-            "status",
-            "rejection_reason",
             "created_at",
             "updated_at",
         ]
-
     
     # Field validations
     def validate_title(self, value):
@@ -56,29 +51,24 @@ class SongSerializer(serializers.ModelSerializer):
         return value
 
     def validate_release_year(self, value):
+        from common.constants import MIN_RELEASE_YEAR
         current_year = timezone.now().year
         if value > current_year:
             raise serializers.ValidationError(
                 f"Release year cannot be in the future. (Current year: {current_year})"
             )
+        if value < MIN_RELEASE_YEAR:
+            raise serializers.ValidationError(
+                f"Release year cannot be less than {MIN_RELEASE_YEAR}. (Current year: {current_year})"
+            )
         return value
 
-    
-    # Object-level validation
-    def validate(self, attrs):
-        """
-        Prevent users from modifying approved songs directly.
-        """
-        instance = self.instance
-
-        if instance and instance.status == SongStatus.APPROVED:
+    def create(self, validated_data):
+        song = Song.objects.filter(title__iexact=validated_data['title'])
+        if song.exists():
             raise serializers.ValidationError(
-                "Approved songs cannot be modified without admin review."
+               {"title": "Song with this title already exists."}
             )
 
-        return attrs
-
-    def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
-        validated_data["status"] = SongStatus.PENDING
         return super().create(validated_data)
