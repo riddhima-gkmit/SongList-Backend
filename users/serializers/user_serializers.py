@@ -3,6 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from ..models import User
+from common.constants import PHONE_NUMBER_DIGITS
 
 
 # User (Self) Serializers
@@ -23,7 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
             "role",
             "date_joined",
         ]
-        read_only_fields = ["id", "role", "date_joined"]
+        read_only_fields = ["id", "role", "date_joined", "email"]
 
     def validate_first_name(self, value):
         value = value.strip()
@@ -60,12 +61,43 @@ class UserSerializer(serializers.ModelSerializer):
             
         if value.startswith("+91"):
             value = value[3:]
+        elif value.startswith("+"):
+            value = value[1:]
 
         digits_count = sum(c.isdigit() for c in value)
-        if digits_count < 10 or digits_count > 10:
-            raise serializers.ValidationError("Phone number must contain 10 digits.")
+        if digits_count != PHONE_NUMBER_DIGITS:
+            raise serializers.ValidationError(f"Phone number must contain {PHONE_NUMBER_DIGITS} digits.")
         
         normalized_phone = "+91" + value
+        return normalized_phone
+
+    def validate_username(self, value):
+        """Ensure username is unique within tenant when updating."""
+        if not value:
+            raise serializers.ValidationError("Username cannot be empty.")
+        
+        value = value.strip()
+        
+        # Get the current user instance (if updating) or request user
+        user = self.instance if self.instance else None
+        request = self.context.get('request')
+        
+        if user and request:
+            # Check if username is being changed
+            if user.username != value:
+                # Check for existing username in the same tenant
+                existing_user = User.objects.filter(
+                    username=value,
+                    tenant=user.tenant,
+                    deleted_at__isnull=True
+                ).exclude(id=user.id).first()
+                
+                if existing_user:
+                    raise serializers.ValidationError(
+                        "A user with this username already exists in your organization."
+                    )
+        
+        return value
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -105,11 +137,37 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "email",
-            "first_name",
-            "last_name",
-            "phone_no",
+            "role",
             "date_joined",
         ]
 
-    
-    
+
+class SuperAdminAdminSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Super Admin to view all admins across platform.
+    Includes tenant information.
+    """
+    tenant_id = serializers.UUIDField(source="tenant.id", read_only=True)
+    tenant_name = serializers.CharField(source="tenant.name", read_only=True)
+    tenant_is_active = serializers.BooleanField(source="tenant.is_active", read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "phone_no",
+            "role",
+            "is_active",
+            "is_verified",
+            "date_joined",
+            "tenant_id",
+            "tenant_name",
+            "tenant_is_active",
+        ]
+        read_only_fields = fields
+
+

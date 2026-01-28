@@ -1,8 +1,6 @@
-from .user import (
+from .user_views import (
     UserMeAPIView,
     ChangePasswordAPIView,
-    AdminUserListAPIView,
-    AdminUserDetailAPIView,
 )
 
 __all__ = [
