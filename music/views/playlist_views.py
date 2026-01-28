@@ -1,21 +1,22 @@
+import uuid
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.serializers import ValidationError
 from rest_framework.exceptions import PermissionDenied
-from django.http import Http404
-from django.shortcuts import get_object_or_404
 
-from music.models.playlist import Playlist
-from music.models.playlist_song import PlaylistSong
-from music.serializers.playlist import (
+from music.models.playlist_models import Playlist
+from music.models.playlist_song_models import PlaylistSong
+from music.serializers.playlist_serializers import (
     PlaylistSerializer,
     PlaylistSongAddSerializer,
 )
 from common.pagination import DefaultPagination
+from rest_framework.permissions import IsAuthenticated
 from common.permissions import IsOwnerOrAdmin
-
+from common.enums import UserRole
+from common.responses import error_response
+from users.models import User
 class PlaylistAPIView(APIView):
     """
     List playlists.
@@ -27,13 +28,17 @@ class PlaylistAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """List playlists. Admin sees all, users see only their own."""
+        """List playlists. Admin sees all in their tenant, users see only their own."""
         try:
-            queryset = Playlist.objects.all()
-
-            # Users can only see their own playlists
-            if not request.user.is_admin:
-                queryset = queryset.filter(user=request.user)
+            if request.user.role == UserRole.SUPER_ADMIN:
+                return error_response("Super Admins cannot see playlists.", status_code=status.HTTP_403_FORBIDDEN)
+            
+            if request.user.role == UserRole.ADMIN:
+                # Admin sees all playlists in their tenant
+                queryset = Playlist.objects.filter(user__tenant=request.user.tenant)
+            else:
+                # LISTENER sees only their own playlists
+                queryset = Playlist.objects.filter(user=request.user)
 
             # Return paginated results
             paginator = DefaultPagination()
@@ -43,7 +48,7 @@ class PlaylistAPIView(APIView):
 
             return paginator.get_paginated_response(serializer.data)
 
-        except Exception:
+        except Exception as e:
             return Response(
                 {"error": "Failed to fetch playlists."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -52,27 +57,49 @@ class PlaylistAPIView(APIView):
     def post(self, request):
         """
         Create a new playlist.
+        - LISTENER: Creates playlist for themselves
+        - ADMIN: Can create playlist for any user in their tenant (user_id required)
         """
         try:
-            # Admins cannot create playlists
-            if request.user.is_admin:
-                return Response(
-                    {"error": "Admins cannot create playlists."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
+            # Super Admins cannot create playlists
+            if request.user.role == UserRole.SUPER_ADMIN:
+                return error_response("Super Admins cannot see playlists.", status_code=status.HTTP_403_FORBIDDEN)
+            
+            # Determine target user for playlist creation
+            target_user = request.user
+            
+            # If admin, check if user_id is provided to create playlist for another user
+            if request.user.role == UserRole.ADMIN:
+                user_id = request.data.get('user_id')
+                target_user = User.objects.filter(id=user_id).first()
+                if not target_user:
+                    return error_response(
+                        "user_id is required to create playlist for another user.",
+                        status_code=status.HTTP_400_BAD_REQUEST
+                    )
+                elif uuid.UUID(user_id) == request.user.id:
+                    return error_response(
+                        "You cannot create playlist for yourself.",
+                        status_code=status.HTTP_400_BAD_REQUEST
+                    )
+                elif target_user.role == UserRole.ADMIN:
+                    return error_response(
+                        "You cannot create playlist for another admin.",
+                        status_code=status.HTTP_400_BAD_REQUEST
+                    )
+            
             serializer = PlaylistSerializer(
-                data=request.data, context={"request": request}
+                data=request.data, context={"request": request, "target_user": target_user}
             )
             serializer.is_valid(raise_exception=True)
-            serializer.save(user=request.user)
+            serializer.save(user=target_user)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception:
+        except Exception as e:
             return Response(
                 {"error": "Failed to create playlist."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -88,13 +115,13 @@ class PlaylistDetailAPIView(APIView):
     def get(self, request, id):
         """Retrieve a single playlist by ID."""
         try:
-            playlist = get_object_or_404(Playlist, id=id)
+            playlist = Playlist.objects.get(id=id)
             self.check_object_permissions(request, playlist)
 
             serializer = PlaylistSerializer(playlist)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        except Http404:
+        except Playlist.DoesNotExist:
             return Response(
                 {"error": "Playlist not found."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -113,16 +140,9 @@ class PlaylistDetailAPIView(APIView):
             )
 
     def patch(self, request, id):
-        """Update a playlist (partial update). Admins cannot update."""
+        """Update a playlist (partial update). Owner and admin can update."""
         try:
-            # Admins are not allowed to update playlists
-            if request.user.is_admin:
-                return Response(
-                    {"error": "Admins cannot update playlists."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-            playlist = get_object_or_404(Playlist, id=id)
+            playlist = Playlist.objects.get(id=id)
             self.check_object_permissions(request, playlist)
 
             serializer = PlaylistSerializer(
@@ -141,7 +161,7 @@ class PlaylistDetailAPIView(APIView):
         except ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-        except Http404:
+        except Playlist.DoesNotExist:
             return Response(
                 {"error": "Playlist not found."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -162,13 +182,13 @@ class PlaylistDetailAPIView(APIView):
     def delete(self, request, id):
         """Soft delete a playlist."""
         try:
-            playlist = get_object_or_404(Playlist, id=id)
+            playlist = Playlist.objects.get(id=id)
             self.check_object_permissions(request, playlist)
 
             playlist.delete()  # Soft delete
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        except Http404:
+        except Playlist.DoesNotExist:
             return Response(
                 {"error": "Playlist not found."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -190,21 +210,55 @@ class PlaylistSongAPIView(APIView):
     """
     Manage songs within a playlist.
     
-    Only playlist owners can add/remove songs. Admins cannot.
+    - GET: Retrieve all songs in playlist (owner or admin)
+    - POST: Add song to playlist (owner only)
+    - DELETE: Remove song from playlist (owner only)
     """
     permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
 
-    def post(self, request, id):
-        """Add an approved song to playlist. Admins cannot add songs."""
+    def get(self, request, id):
+        """Get all songs in a playlist with pagination."""
         try:
-            # Admins are not allowed to add songs to playlists
-            if request.user.is_admin:
-                return Response(
-                    {"error": "Admins cannot add songs to playlists."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+            playlist = Playlist.objects.get(id=id)
+            self.check_object_permissions(request, playlist)
+            
+            # Get all playlist songs with related tenant_song and song data (exclude soft-deleted)
+            playlist_songs = PlaylistSong.objects.filter(
+                playlist=playlist,
+                deleted_at__isnull=True
+            ).select_related('tenant_song', 'tenant_song__song')
+            
+            # Paginate results
+            paginator = DefaultPagination()
+            page = paginator.paginate_queryset(playlist_songs, request)
+            
+            # Serialize song data from playlist songs
+            from music.serializers.song import SongSerializer
+            songs = [ps.tenant_song.song for ps in page]
+            serializer = SongSerializer(songs, many=True)
+            
+            return paginator.get_paginated_response(serializer.data)
+            
+        except Playlist.DoesNotExist:
+            return Response(
+                {"error": "Playlist not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except PermissionDenied:
+            return Response(
+                {"error": "You do not have permission to view this playlist."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to retrieve playlist songs: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-            playlist = get_object_or_404(Playlist, id=id)
+    def post(self, request, id):
+        """Add a song to playlist. Owner and admin can add songs."""
+        try:
+            playlist = Playlist.objects.get(id=id)
             self.check_object_permissions(request, playlist)
 
             serializer = PlaylistSongAddSerializer(
@@ -213,10 +267,25 @@ class PlaylistSongAPIView(APIView):
             )
             serializer.is_valid(raise_exception=True)
 
-            PlaylistSong.objects.create(
+            tenant_song = serializer.validated_data["tenant_song"]
+            
+            # Check if PlaylistSong exists but is soft-deleted
+            playlist_song = PlaylistSong.objects.filter(
                 playlist=playlist,
-                song=serializer.validated_data["song"],
-            )
+                tenant_song=tenant_song
+            ).first()
+            
+            if playlist_song and playlist_song.deleted_at:
+                # Restore soft-deleted PlaylistSong
+                playlist_song.deleted_at = None
+                playlist_song.deleted_by = None
+                playlist_song.save(update_fields=['deleted_at', 'deleted_by', 'updated_at'])
+            elif not playlist_song:
+                # Create new PlaylistSong
+                PlaylistSong.objects.create(
+                    playlist=playlist,
+                    tenant_song=tenant_song,
+                )
 
             return Response(
                 {"message": "Song added to playlist"},
@@ -226,12 +295,11 @@ class PlaylistSongAPIView(APIView):
         except ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-        except Http404:
+        except Playlist.DoesNotExist:
             return Response(
                 {"error": "Playlist not found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
         except PermissionDenied:
             return Response(
                 {"error": "You do not have permission to add songs to this playlist."},
@@ -246,33 +314,29 @@ class PlaylistSongAPIView(APIView):
         
         
     def delete(self, request, playlist_id, song_id):
-        """Remove a song from playlist. Admins cannot remove songs."""
+        """Remove a song from playlist. Owner and admin can remove songs."""
         try:
-            # Admins are not allowed to remove songs from playlists
-            if request.user.is_admin:
-                return Response(
-                    {"error": "Admins cannot remove songs from playlists."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-            playlist = get_object_or_404(Playlist, id=playlist_id)
+            playlist = Playlist.objects.get(id=playlist_id)
             self.check_object_permissions(request, playlist)
 
-            playlist_song = get_object_or_404(
-                PlaylistSong,
+            playlist_song = PlaylistSong.objects.get(
                 playlist=playlist,
-                song_id=song_id,
+                tenant_song_id=song_id,
             )
 
             playlist_song.delete()  # soft delete
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        except Http404:
+        except Playlist.DoesNotExist:
             return Response(
-                {"error": "Playlist or song not found."},
+                {"error": "Playlist not found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
+        except PlaylistSong.DoesNotExist:
+            return Response(
+                {"error": "Song not found in playlist."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         except PermissionDenied:
             return Response(
                 {"error": "You do not have permission to remove songs from this playlist."},
