@@ -1,4 +1,3 @@
-"""Tenant managers."""
 from django.db import models
 
 
