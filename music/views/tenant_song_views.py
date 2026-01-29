@@ -1,6 +1,6 @@
 """Tenant-Song link views."""
 from django.utils import timezone
-from rest_framework.views import APIView
+from rest_framework.views import APIView, Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from common.responses import success_response, error_response
@@ -112,7 +112,7 @@ class TenantSongDetailAPIView(APIView):
                 deleted_by=request.user
             )
             
-            return success_response(message="Song unlinked from tenant successfully.", status_code=status.HTTP_204_NO_CONTENT)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return error_response("Tenant-song link not found.", status_code=status.HTTP_404_NOT_FOUND)
 

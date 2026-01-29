@@ -1,6 +1,6 @@
 from django.db.models import Q
-from rest_framework.views import APIView
-from rest_framework import status
+from rest_framework.views import APIView, Response
+from rest_framework import status 
 from rest_framework.permissions import IsAuthenticated
 
 from music.models.song_models import Song
@@ -149,4 +149,4 @@ class SongDetailAPIView(APIView):
             return error_response("Permission denied.", status_code=status.HTTP_403_FORBIDDEN)
 
         song.delete(deleted_by=request.user)
-        return success_response("Song deleted successfully.", status_code=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)

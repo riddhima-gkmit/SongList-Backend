@@ -18,7 +18,7 @@ class Song(SoftDeleteModel):
     visibility = models.CharField(
         max_length=20,
         choices=SongVisibility.choices,
-        default=SongVisibility.TENANT
+        default=SongVisibility.GLOBAL
     )
     
     tenant = models.ForeignKey(

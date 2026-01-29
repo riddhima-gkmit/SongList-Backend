@@ -17,6 +17,8 @@ from common.permissions import IsOwnerOrAdmin
 from common.enums import UserRole
 from common.responses import error_response
 from users.models import User
+from music.serializers.song_serializers import SongSerializer
+
 class PlaylistAPIView(APIView):
     """
     List playlists.
@@ -233,7 +235,6 @@ class PlaylistSongAPIView(APIView):
             page = paginator.paginate_queryset(playlist_songs, request)
             
             # Serialize song data from playlist songs
-            from music.serializers.song import SongSerializer
             songs = [ps.tenant_song.song for ps in page]
             serializer = SongSerializer(songs, many=True)
             

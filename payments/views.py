@@ -10,7 +10,6 @@ from common.responses import success_response, error_response
 from common.pagination import DefaultPagination
 from payments.services import RazorpayService
 from payments.serializers import (
-    PaymentTransactionSerializer,
     SubscriptionSerializer,
     SuperAdminSubscriptionSerializer,
     SuperAdminPaymentTransactionSerializer,

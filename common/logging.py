@@ -109,6 +109,13 @@ def get_logging_config(base_dir):
                 'propagate': False,
             },
             
+            # Middleware & common
+            'common.middleware': {
+                'handlers': ['console', 'file'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+            
             # Application loggers
             'users': {
                 'handlers': ['console', 'file'],

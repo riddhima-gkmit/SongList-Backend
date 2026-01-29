@@ -1,4 +1,4 @@
-from rest_framework.views import APIView
+from rest_framework.views import APIView, Response
 from rest_framework import status as http_status
 from rest_framework.permissions import IsAuthenticated
 from users.serializers import UserSerializer, ChangePasswordSerializer
@@ -39,7 +39,7 @@ class UserMeAPIView(APIView):
             return error_response("Admin and Super Admin accounts cannot be deleted.", status_code=http_status.HTTP_403_FORBIDDEN)
 
         request.user.delete()
-        return success_response(message="Account deleted.", status_code=http_status.HTTP_204_NO_CONTENT)
+        return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 
 class ChangePasswordAPIView(APIView):

@@ -20,7 +20,7 @@ from users.views.admin_views import (
     SuperAdminListAdminsAPIView,
 )
 from users.views.user_views import UserMeAPIView, ChangePasswordAPIView
-from users.views.user_management import UserCreateAPIView, DeletedUsersListAPIView
+from users.views.user_management_views import UserCreateAPIView, DeletedUsersListAPIView
 from users.views.template_views import ForgotPasswordView, VerifyEmailView
 
 

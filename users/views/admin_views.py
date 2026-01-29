@@ -1,7 +1,7 @@
 """
 Admin views for user management (delete, restore users).
 """
-from rest_framework.views import APIView
+from rest_framework.views import APIView, Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status as http_status
 
@@ -222,4 +222,4 @@ class AdminUserDetailAPIView(APIView):
         # Soft delete with admin tracking
         user.delete(deleted_by=request.user)
         
-        return success_response(message="User deleted successfully.")
+        return Response(status=http_status.HTTP_204_NO_CONTENT)

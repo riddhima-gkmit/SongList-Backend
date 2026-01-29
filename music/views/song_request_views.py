@@ -1,5 +1,5 @@
 import uuid
-from rest_framework.views import APIView
+from rest_framework.views import APIView, Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status as http_status
 
@@ -146,7 +146,7 @@ class SongRequestDetailAPIView(APIView):
                 return error_response("Permission denied.", status_code=http_status.HTTP_403_FORBIDDEN)
             
             song_request.delete()  # Soft delete
-            return success_response(message="Song request deleted successfully.", status_code=http_status.HTTP_204_NO_CONTENT)
+            return Response(status=http_status.HTTP_204_NO_CONTENT)
         except SongRequest.DoesNotExist:
             return error_response("Song request not found.", status_code=http_status.HTTP_404_NOT_FOUND)
         except Exception as e:

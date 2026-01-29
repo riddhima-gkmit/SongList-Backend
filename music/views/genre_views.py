@@ -1,6 +1,6 @@
-from rest_framework.views import APIView
+from rest_framework.views import APIView, Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
+from rest_framework import status, http_status
 
 from common.enums import UserRole
 from common.responses import success_response, error_response
@@ -78,7 +78,7 @@ class GenreDetailAPIView(APIView):
         try:
             genre = Genre.objects.get(id=id)
             genre.delete()
-            return success_response(message="Genre deleted successfully.", status_code=status.HTTP_204_NO_CONTENT)
+            return Response(status=http_status.HTTP_204_NO_CONTENT)
         except Genre.DoesNotExist:
             return error_response("Genre not found.", status_code=status.HTTP_404_NOT_FOUND)
         except ValueError as e:
