@@ -8,6 +8,10 @@ class SoftDeleteManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
 
+    def with_deleted(self):
+        """Include soft-deleted records."""
+        return super().get_queryset()
+
     def all_with_deleted(self):
         """Get all records including deleted."""
         return super().get_queryset()

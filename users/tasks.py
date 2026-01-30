@@ -2,15 +2,21 @@
 Celery tasks for asynchronous email delivery.
 All email tasks are idempotent, tenant-aware, and include retry logic.
 """
-from celery import shared_task
-from django.core.exceptions import ObjectDoesNotExist
-from django.core.mail import send_mail
-from django.conf import settings
 import logging
 
-from users.helpers import send_verification_email, send_password_reset_email, send_welcome_email
-from users.models import User
+from celery import shared_task
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.mail import send_mail
+
+from common.context import get_correlation_id
 from tenants.models import Tenant
+from users.helpers import (
+    send_password_reset_email,
+    send_verification_email,
+    send_welcome_email,
+)
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -44,18 +50,30 @@ def send_verification_otp_task(self, user_id: str, otp: str, tenant_id: str):
             raise Exception("Email sending failed")
         
         logger.info(
-            f"Verification OTP sent to {user.email} (tenant: {tenant_name})",
-            extra={'tenant_id': tenant_id, 'user_id': user_id}
+            "Verification OTP sent",
+            extra={
+                "correlation_id": get_correlation_id(),
+                "tenant_id": tenant_id,
+                "user_id": user_id,
+            },
         )
         return {'status': 'sent', 'user_id': user_id, 'email': user.email}
         
     except ObjectDoesNotExist:
-        logger.error(f"User {user_id} not found, skipping OTP email")
-        return {'status': 'user_not_found'}
+        logger.error(
+            f"User {user_id} not found, skipping OTP email",
+            extra={"correlation_id": get_correlation_id(), "user_id": user_id},
+        )
+        return {"status": "user_not_found"}
     except Exception as exc:
         logger.error(
-            f"Failed to send verification OTP: {exc}",
-            extra={'tenant_id': tenant_id, 'user_id': user_id}
+            "Failed to send verification OTP",
+            exc_info=True,
+            extra={
+                "correlation_id": get_correlation_id(),
+                "tenant_id": tenant_id,
+                "user_id": user_id,
+            },
         )
         raise
 
@@ -93,20 +111,30 @@ def send_password_reset_otp_task(self, email: str, otp: str, tenant_id: str):
             raise Exception("Email sending failed")
         
         logger.info(
-            f"Password reset OTP sent to {email} (tenant: {tenant_name})",
-            extra={'tenant_id': tenant_id, 'email': email}
+            "Password reset OTP sent",
+            extra={
+                "correlation_id": get_correlation_id(),
+                "tenant_id": tenant_id,
+            },
         )
         return {'status': 'sent', 'email': email}
         
     except ObjectDoesNotExist:
-        logger.error(f"Tenant {tenant_id} not found")
+        logger.error(
+            f"Tenant {tenant_id} not found",
+            extra={"correlation_id": get_correlation_id(), "tenant_id": tenant_id},
+        )
         # Still try to send with default tenant name
         send_password_reset_email(email, otp, "SongList")
         return {'status': 'sent_default'}
     except Exception as exc:
         logger.error(
-            f"Failed to send password reset OTP: {exc}",
-            extra={'tenant_id': tenant_id, 'email': email}
+            "Failed to send password reset OTP",
+            exc_info=True,
+            extra={
+                "correlation_id": get_correlation_id(),
+                "tenant_id": tenant_id,
+            },
         )
         raise
 
@@ -178,15 +206,22 @@ def send_login_otp_task(self, email: str, otp: str, tenant_id: str):
         )
         
         logger.info(
-            f"Login OTP sent to {email} (tenant: {tenant_name})",
-            extra={'tenant_id': tenant_id, 'email': email}
+            "Login OTP sent",
+            extra={
+                "correlation_id": get_correlation_id(),
+                "tenant_id": tenant_id,
+            },
         )
         return {'status': 'sent', 'email': email}
         
     except Exception as exc:
         logger.error(
-            f"Failed to send login OTP: {exc}",
-            extra={'tenant_id': tenant_id, 'email': email}
+            "Failed to send login OTP",
+            exc_info=True,
+            extra={
+                "correlation_id": get_correlation_id(),
+                "tenant_id": tenant_id,
+            },
         )
         raise
 
@@ -212,20 +247,33 @@ def send_welcome_email_task(self, user_id: str):
         success = send_welcome_email(user.email, user.username, tenant_name)
         
         if not success:
-            # Welcome email failure is not critical
-            logger.warning(f"Welcome email failed for {user.email}")
+            logger.warning(
+                "Welcome email failed",
+                extra={"correlation_id": get_correlation_id(), "user_id": user_id},
+            )
             return {'status': 'failed_non_critical'}
         
         logger.info(
-            f"Welcome email sent to {user.email}",
-            extra={'tenant_id': str(user.tenant.id) if user.tenant else None, 'user_id': user_id}
+            "Welcome email sent",
+            extra={
+                "correlation_id": get_correlation_id(),
+                "tenant_id": str(user.tenant.id) if user.tenant else None,
+                "user_id": user_id,
+            },
         )
         return {'status': 'sent', 'user_id': user_id}
         
     except ObjectDoesNotExist:
-        logger.error(f"User {user_id} not found, skipping welcome email")
-        return {'status': 'user_not_found'}
+        logger.error(
+            f"User {user_id} not found, skipping welcome email",
+            extra={"correlation_id": get_correlation_id(), "user_id": user_id},
+        )
+        return {"status": "user_not_found"}
     except Exception as exc:
-        logger.error(f"Failed to send welcome email: {exc}")
+        logger.error(
+            "Failed to send welcome email",
+            exc_info=True,
+            extra={"correlation_id": get_correlation_id(), "user_id": user_id},
+        )
         # Don't raise - welcome email is not critical
         return {'status': 'failed'}

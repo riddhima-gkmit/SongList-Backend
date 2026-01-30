@@ -111,10 +111,10 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", 30))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv("JWT_REFRESH_TOKEN_LIFETIME_DAYS", 2))),
-    "ROTATE_REFRESH_TOKENS": os.getenv("JWT_ROTATE_REFRESH_TOKENS", "True") == "True",
-    "BLACKLIST_AFTER_ROTATION": os.getenv("JWT_BLACKLIST_AFTER_ROTATION", "True") == "True",
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
@@ -125,11 +125,11 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = os.getenv("STATIC_URL", "static/")
+STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Media files
-MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
+MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
@@ -174,40 +174,29 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = int(os.getenv('CELERY_TASK_TIME_LIMIT', 1800))  # Default: 30 minutes
 
 # Celery Beat Schedule
-_poll_interval = os.getenv('CELERY_POLL_PAYMENTS_INTERVAL_MINUTES', '10')
 CELERY_BEAT_SCHEDULE = {
     'poll-pending-payments': {
         'task': 'payments.tasks.poll_pending_payments',
-        'schedule': crontab(minute=f"*/{_poll_interval}"),  # Default: Every 10 minutes
+        'schedule': crontab(minute='*/1'),  # Every 10 minutes
     },
     'cleanup-old-webhooks': {
         'task': 'payments.tasks.cleanup_old_webhook_events',
-        'schedule': crontab(
-            hour=int(os.getenv('CELERY_CLEANUP_WEBHOOKS_HOUR', '3')),
-            minute=int(os.getenv('CELERY_CLEANUP_WEBHOOKS_MINUTE', '0'))
-        ),  # Default: Daily at 3 AM
+        'schedule': crontab(hour=3, minute=0),  # Daily at 3 AM
     },
     'cleanup-expired-tokens': {
         'task': 'cleanup_expired_tokens',
-        'schedule': crontab(
-            hour=int(os.getenv('CELERY_CLEANUP_TOKENS_HOUR', '2')),
-            minute=int(os.getenv('CELERY_CLEANUP_TOKENS_MINUTE', '0'))
-        ),  # Default: Daily at 2 AM
+        'schedule': crontab(hour=2, minute=0),  # Daily at 2 AM
         'options': {
-            'expires': int(os.getenv('CELERY_TASK_EXPIRES_SECONDS', '3600')),  # Default: 1 hour
+            'expires': 3600,  # Task expires after 1 hour
         }
     },
 }
 
 
-# Create logs directory if it doesn't exist
-LOGS_DIR = os.path.join(BASE_DIR, 'logs')
-os.makedirs(LOGS_DIR, exist_ok=True)
-
 # Rate Limiting (using Django cache for simplicity)
-RATE_LIMIT_ENABLE = os.getenv('RATE_LIMIT_ENABLE', '1') == '1'
-RATE_LIMIT_LOGIN_ATTEMPTS = int(os.getenv('RATE_LIMIT_LOGIN_ATTEMPTS', '10'))
-RATE_LIMIT_LOGIN_WINDOW = int(os.getenv('RATE_LIMIT_LOGIN_WINDOW', '60'))  # Default: 1 minute
+RATE_LIMIT_ENABLE = os.getenv('RATE_LIMIT_ENABLE', 1) == 1
+RATE_LIMIT_LOGIN_ATTEMPTS = int(os.getenv('RATE_LIMIT_LOGIN_ATTEMPTS', 10))
+RATE_LIMIT_LOGIN_WINDOW = int(os.getenv('RATE_LIMIT_LOGIN_WINDOW', 60))  # 1 minute
 
 # Logging Configuration
-LOGGING = get_logging_config(BASE_DIR)
+LOGGING = get_logging_config()

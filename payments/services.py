@@ -2,19 +2,25 @@
 Payment service layer.
 All payment business logic is here, NOT in views.
 """
-import uuid
-import razorpay
+import time
 import hashlib
 import hmac
+import logging
+import uuid
 from decimal import Decimal
+
+import razorpay
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from common.constants import PREMIUM_AMOUNT
+from common.context import get_correlation_id
+from common.enums import PaymentStatus
 from payments.models import PaymentTransaction, Subscription, WebhookEvent
 from tenants.models import Tenant
-from common.enums import PaymentStatus
-from common.constants import PREMIUM_AMOUNT
+
+logger = logging.getLogger(__name__)
 
 
 class RazorpayService:
@@ -25,10 +31,16 @@ class RazorpayService:
             auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
         )
 
-    def create_payment_link(self, tenant: Tenant, user_email: str = None, user_name: str = None) -> PaymentTransaction:
+    def create_payment_link(
+        self, tenant: Tenant, user_email: str = None, user_name: str = None
+    ) -> PaymentTransaction:
         """Create a Razorpay payment link for premium subscription."""
         try:
             if tenant.is_premium:
+                logger.warning(
+                    f"Tenant {tenant.id} already has premium subscription",
+                    extra={"correlation_id": get_correlation_id(), "tenant_id": tenant.id},
+                )
                 raise ValueError("Tenant already has premium subscription")
 
             # Check for existing pending transaction
@@ -51,6 +63,7 @@ class RazorpayService:
                 "currency": "INR",
                 "description": f"Premium Subscription - {tenant.name}",
                 "reference_id": reference_id,
+                "expire_by": int(time.time()) + (16 * 60),
                 "notes": {
                     "tenant_id": str(tenant.id),
                     "tenant_name": tenant.name,
@@ -83,8 +96,23 @@ class RazorpayService:
                 },
             )
 
+            logger.info(
+                f"Created payment link for tenant {tenant.id}",
+                extra={
+                    "correlation_id": get_correlation_id(),
+                    "tenant_id": tenant.id,
+                    "transaction_id": str(txn.id),
+                },
+            )
+
             return txn
+        except ValueError:
+            raise
         except Exception as e:
+            logger.error(
+                f"Failed to create payment link: {e}",
+                extra={"correlation_id": get_correlation_id(), "tenant_id": tenant.id},
+            )
             raise ValueError(f"Failed to create payment link: {str(e)}")
 
 
@@ -118,19 +146,10 @@ class RazorpayService:
                 return False
 
             receipt = order.get("receipt")  # Contains reference_id like "premium_4a23481017b74040"
-
-            # Try to find transaction by order_id first (if we already stored it)
-            txn = None
-            if order_id:
-                try:
-                    txn = PaymentTransaction.objects.select_for_update().get(
-                        razorpay_order_id=order_id
-                    )
-                except PaymentTransaction.DoesNotExist:
-                    pass
-
+            
             # Razorpay stores reference_id in order.receipt
-            if not txn and receipt:
+            txn = None
+            if receipt:
                 try:
                     txn = PaymentTransaction.objects.select_for_update().filter(
                         metadata__reference_id=receipt,
@@ -140,6 +159,10 @@ class RazorpayService:
                     pass
 
             if not txn:
+                logger.warning(
+                    "Payment transaction not found for webhook payload",
+                    extra={"correlation_id": get_correlation_id()},
+                )
                 return False
 
             # Store order_id for future lookups
@@ -162,10 +185,28 @@ class RazorpayService:
             subscription, _ = Subscription.objects.get_or_create(tenant=txn.tenant)
             subscription.activate(transaction=txn, source="razorpay")
 
+            logger.info(
+                f"Payment activated for tenant {txn.tenant_id} via webhook",
+                extra={
+                    "correlation_id": get_correlation_id(),
+                    "transaction_id": str(txn.id),
+                    "tenant_id": txn.tenant_id,
+                },
+            )
+
             return True
         except PaymentTransaction.DoesNotExist:
+            logger.error(
+                "Payment transaction not found for webhook",
+                extra={"correlation_id": get_correlation_id()},
+            )
             return False
-        except Exception:
+        except Exception as e:
+            logger.error(
+                f"Error processing payment captured: {e}",
+                exc_info=True,
+                extra={"correlation_id": get_correlation_id()},
+            )
             return False
 
 
@@ -211,22 +252,10 @@ class PaymentPollingService:
                                 self.razorpay.process_payment_captured({
                                     "payload": {
                                         "payment": {"entity": payment},
-                                        "order": {"entity": {"id": order_id}}
+                                        "order": {"entity": {"id": order_id, "receipt": payment_link.get("reference_id")}}
                                     }
                                 })
                                 break
-                    else:
-                        # Fallback: try to get payments directly from payment_link
-                        # Note: Razorpay payment_link API might not have payments directly
-                        # This is a fallback that may not work
-                        payments = payment_link.get("payments", [])
-                        if payments and isinstance(payments, list):
-                            for payment in payments:
-                                if payment.get("status") == "captured":
-                                    self.razorpay.process_payment_captured({
-                                        "payload": {"payment": {"entity": payment}}
-                                    })
-                                    break
                 
                 elif payment_link["status"] in ["expired", "cancelled"]:
                     txn.mark_failed(f"Payment link {payment_link['status']}")

@@ -2,15 +2,20 @@
 Razorpay webhook handler.
 Webhooks are the source of truth for payment status.
 """
-import json
 import hashlib
+import json
+import logging
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from common.context import get_correlation_id
 from payments.models import WebhookEvent
 from payments.services import RazorpayService
 from payments.tasks import process_payment_webhook
+
+logger = logging.getLogger(__name__)
 
 
 @csrf_exempt
@@ -34,6 +39,10 @@ def razorpay_webhook(request):
 
         # Verify signature
         if not service.verify_webhook_signature(request.body, signature):
+            logger.error(
+                "Webhook signature verification failed",
+                extra={"correlation_id": get_correlation_id()},
+            )
             return JsonResponse(
                 {"status": "error", "message": "Invalid signature"}, status=401
             )
@@ -50,6 +59,14 @@ def razorpay_webhook(request):
 
         # Check for duplicate
         if WebhookEvent.objects.filter(idempotency_key=idempotency_key).exists():
+            logger.info(
+                f"Duplicate webhook event {event_type}, skipping",
+                extra={
+                    "correlation_id": get_correlation_id(),
+                    "event_type": event_type,
+                    "idempotency_key": idempotency_key[:20],
+                },
+            )
             return JsonResponse({"status": "success", "message": "Already processed"})
 
         # Store event
@@ -62,15 +79,35 @@ def razorpay_webhook(request):
             idempotency_key=idempotency_key,
         )
 
+        logger.info(
+            f"Received webhook: {event_type}",
+            extra={
+                "correlation_id": get_correlation_id(),
+                "event_type": event_type,
+                "webhook_event_id": str(webhook_event.id),
+            },
+        )
+
         # Process event asynchronously using Celery
-        # This ensures quick response to Razorpay (within 5 seconds)
-        # and allows retries if processing fails
         if event_type in ["payment.captured", "order.paid"]:
-            # Queue task for async processing
             process_payment_webhook.delay(str(webhook_event.id))
+            logger.info(
+                f"Queued webhook processing for event {event_type}",
+                extra={
+                    "correlation_id": get_correlation_id(),
+                    "event_type": event_type,
+                    "webhook_event_id": str(webhook_event.id),
+                },
+            )
         else:
-            # Mark non-payment events as processed immediately
             webhook_event.mark_processed()
+            logger.info(
+                f"Ignoring webhook event type: {event_type}",
+                extra={
+                    "correlation_id": get_correlation_id(),
+                    "event_type": event_type,
+                },
+            )
 
         # Return success response immediately
         # Razorpay expects a quick response (within 5 seconds)
@@ -78,8 +115,17 @@ def razorpay_webhook(request):
         return JsonResponse({"status": "success"})
 
     except json.JSONDecodeError:
+        logger.error(
+            "Invalid JSON in webhook payload",
+            extra={"correlation_id": get_correlation_id()},
+        )
         return JsonResponse(
             {"status": "error", "message": "Invalid JSON"}, status=400
         )
     except Exception as e:
+        logger.error(
+            f"Error processing webhook: {e}",
+            exc_info=True,
+            extra={"correlation_id": get_correlation_id()},
+        )
         return JsonResponse({"status": "error", "message": str(e)}, status=500)

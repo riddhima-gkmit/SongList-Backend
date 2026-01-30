@@ -1,10 +1,14 @@
+"""
+Views for Song Request CRUD and review operations.
+"""
 import uuid
-from rest_framework.views import APIView, Response
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status as http_status
 
 from common.enums import UserRole
 from common.responses import success_response, error_response
+from common.cache_utils import invalidate_tenant_songs_list_cache
 from common.permissions import IsAdmin, IsOwnerOrAdmin, IsTenantUser
 from common.pagination import DefaultPagination
 from music.models import SongRequest, RequestStatus, Song
@@ -16,7 +20,6 @@ from music.serializers import (
     SongRequestFulfillSerializer,
 )
 from users.models import User
-from music.models.tenant_song_models import TenantSong
 
 
 class SongRequestListCreateAPIView(APIView):
@@ -58,15 +61,20 @@ class SongRequestListCreateAPIView(APIView):
             
             if request.user.role == UserRole.ADMIN:
                 user_id = request.data.get('user_id')
-                target_user = User.objects.filter(id=user_id).first()
-                if not target_user:
+                if not user_id:
                     return error_response(
                         "user_id is required to create song request for another user.",
                         status_code=http_status.HTTP_400_BAD_REQUEST
                     )
-                elif uuid.UUID(user_id) == request.user.id:
+                if uuid.UUID(user_id) == request.user.id:
                     return error_response(
                         "You cannot create song request for yourself.",
+                        status_code=http_status.HTTP_400_BAD_REQUEST
+                    )
+                target_user = User.objects.filter(id=user_id, tenant_id=tenant.id).first()
+                if not target_user:
+                    return error_response(
+                        "User not found.",
                         status_code=http_status.HTTP_400_BAD_REQUEST
                     )
                 elif target_user.role == UserRole.ADMIN:
@@ -145,8 +153,8 @@ class SongRequestDetailAPIView(APIView):
             if not request.user.is_admin and song_request.requester != request.user:
                 return error_response("Permission denied.", status_code=http_status.HTTP_403_FORBIDDEN)
             
-            song_request.delete()  # Soft delete
-            return Response(status=http_status.HTTP_204_NO_CONTENT)
+            song_request.delete(deleted_by=request.user)  # Soft delete
+            return success_response(message="Song request deleted successfully.", status_code=http_status.HTTP_204_NO_CONTENT)
         except SongRequest.DoesNotExist:
             return error_response("Song request not found.", status_code=http_status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -194,6 +202,9 @@ class AdminSongRequestFulfillAPIView(APIView):
             
             song = Song.objects.get(id=serializer.validated_data['song_id'])
             
+            # Add song to TenantSong table (for both GLOBAL and TENANT songs)
+            from music.models.tenant_song_models import TenantSong
+            
             # Check if TenantSong link already exists (including soft-deleted)
             existing_tenant_song = TenantSong.objects.filter(
                 tenant=request.user.tenant,
@@ -219,7 +230,7 @@ class AdminSongRequestFulfillAPIView(APIView):
             
             # Mark request as fulfilled
             song_request.fulfill(song)
-            
+            invalidate_tenant_songs_list_cache(str(request.user.tenant_id))
             return success_response(message=message)
         except SongRequest.DoesNotExist:
             return error_response("Approved song request not found.", status_code=http_status.HTTP_404_NOT_FOUND)

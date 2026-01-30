@@ -1,3 +1,6 @@
+"""
+TenantSong serializers for linking GLOBAL songs to tenants.
+"""
 from rest_framework import serializers
 from music.models.tenant_song_models import TenantSong
 from music.models.song_models import Song

@@ -197,7 +197,7 @@ class LogoutAPIView(APIView):
 
     def post(self, request):
         try:
-            # Denylist access token for 30 minutes (matches access token lifetime)
+            # Denylist access token for 12 minutes
             auth_header = request.META.get("HTTP_AUTHORIZATION")
             if auth_header and auth_header.startswith("Bearer "):
                 access_token = auth_header.split(" ")[1]

@@ -1,20 +1,25 @@
 """
 Payment views for payment link creation.
 """
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
+import logging
 
-from common.permissions import IsAdmin, IsAdminOrSuperAdmin, IsSuperAdmin
-from common.responses import success_response, error_response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+
+from common.context import get_correlation_id
 from common.pagination import DefaultPagination
-from payments.services import RazorpayService
+from common.permissions import IsAdmin, IsSuperAdmin
+from common.responses import error_response, success_response
+from payments.models import PaymentTransaction, Subscription
 from payments.serializers import (
     SubscriptionSerializer,
-    SuperAdminSubscriptionSerializer,
     SuperAdminPaymentTransactionSerializer,
+    SuperAdminSubscriptionSerializer,
 )
-from payments.models import Subscription, PaymentTransaction
+from payments.services import RazorpayService
+
+logger = logging.getLogger(__name__)
 
 
 class CreatePaymentLinkAPIView(APIView):
@@ -35,7 +40,16 @@ class CreatePaymentLinkAPIView(APIView):
             transaction = service.create_payment_link(
                 tenant=tenant,
                 user_email=user_email,
-                user_name=user_name if user_name else None
+                user_name=user_name if user_name else None,
+            )
+
+            logger.info(
+                f"Payment link created for tenant {tenant.id}",
+                extra={
+                    "correlation_id": get_correlation_id(),
+                    "tenant_id": tenant.id,
+                    "user_id": request.user.id,
+                },
             )
 
             return success_response(
@@ -49,8 +63,23 @@ class CreatePaymentLinkAPIView(APIView):
                 status.HTTP_201_CREATED,
             )
         except ValueError as e:
+            logger.warning(
+                f"Payment link creation failed (validation): {e}",
+                extra={
+                    "correlation_id": get_correlation_id(),
+                    "tenant_id": request.user.tenant.id if request.user.tenant else None,
+                },
+            )
             return error_response(str(e), status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            logger.error(
+                f"Error creating payment link: {e}",
+                exc_info=True,
+                extra={
+                    "correlation_id": get_correlation_id(),
+                    "tenant_id": request.user.tenant.id if request.user.tenant else None,
+                },
+            )
             return error_response(
                 "Failed to create payment link", str(e), status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -59,7 +88,7 @@ class CreatePaymentLinkAPIView(APIView):
 class SubscriptionStatusAPIView(APIView):
     """Get tenant's subscription status."""
 
-    permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
         try:

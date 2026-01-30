@@ -25,6 +25,7 @@ class PaymentStatus(models.TextChoices):
     VERIFIED = "VERIFIED", "Verified"
     ACTIVATED = "ACTIVATED", "Activated"
     FAILED = "FAILED", "Failed"
+    REFUNDED = "REFUNDED", "Refunded"
 
 class RequestStatus(models.TextChoices):
     """Status of a song request"""

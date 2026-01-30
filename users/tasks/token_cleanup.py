@@ -1,10 +1,13 @@
 """
 Celery task for cleaning up expired JWT tokens.
 """
+import logging
+
 from celery import shared_task
 from django.utils import timezone
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-import logging
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+
+from common.context import get_correlation_id
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +33,14 @@ def cleanup_expired_tokens():
         expires_at__lt=outstanding_cutoff
     ).delete()[0]
     
-    logger.info(f"Token cleanup: Removed {blacklisted_count} blacklisted tokens")
-    logger.info(f"Token cleanup: Removed {outstanding_count} outstanding tokens")
+    logger.info(
+        f"Token cleanup: Removed {blacklisted_count} blacklisted tokens",
+        extra={"correlation_id": get_correlation_id()},
+    )
+    logger.info(
+        f"Token cleanup: Removed {outstanding_count} outstanding tokens",
+        extra={"correlation_id": get_correlation_id()},
+    )
     
     return {
         'blacklisted_removed': blacklisted_count,

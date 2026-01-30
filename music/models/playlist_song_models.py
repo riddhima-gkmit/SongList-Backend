@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from common.models import SoftDeleteModel
 from .playlist_models import Playlist

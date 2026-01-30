@@ -1,3 +1,6 @@
+"""
+Tenant views for SUPER_ADMIN management.
+"""
 from rest_framework.views import APIView, Response
 from rest_framework import status
 

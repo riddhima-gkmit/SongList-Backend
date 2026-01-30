@@ -1,8 +1,10 @@
+"""Bulk song operations."""
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from common.responses import success_response, error_response
+from common.cache_utils import invalidate_tenant_songs_list_cache
 from common.permissions import IsAdmin
 from music.models.tenant_song_models import TenantSong
 from music.models.song_models  import Song
@@ -107,7 +109,7 @@ class BulkAddTenantSongsAPIView(APIView):
             ).count()
             
             total_added = final_active_count - existing_active_count
-            
+            invalidate_tenant_songs_list_cache(str(tenant.id))
             return success_response(
                 message=f"Successfully added {total_added} song(s) to tenant.",
                 data={'total_added_songs': total_added},
@@ -160,7 +162,7 @@ class BulkDeleteTenantSongsAPIView(APIView):
                 deleted_by=request.user,
                 updated_at=timezone.now()
             )
-            
+            invalidate_tenant_songs_list_cache(str(request.user.tenant_id))
             return success_response(
                 message=f"Successfully deleted {deleted_count} tenant-song link(s).",
                 data={"deleted_count": deleted_count}
