@@ -5,13 +5,6 @@ Provides key builders and invalidation helpers for list APIs.
 import hashlib
 from django.core.cache import cache
 
-
-# Cache TTLs (seconds)
-GENRES_LIST_CACHE_TTL = 3600  # 1 hour
-SONGS_LIST_CACHE_TTL = 300  # 5 minutes
-TENANT_SONGS_LIST_CACHE_TTL = 300  # 5 minutes
-
-
 def _hash_params(params: dict) -> str:
     """Create a stable hash from query params dict."""
     if not params:
@@ -33,7 +26,7 @@ def _increment_version(key: str) -> int:
     return version
 
 
-# --- Genres ---
+# Genres
 
 GENRES_LIST_VERSION_KEY = "genres:list:version"
 
@@ -49,7 +42,7 @@ def invalidate_genres_list_cache() -> None:
     _increment_version(GENRES_LIST_VERSION_KEY)
 
 
-# --- Songs ---
+# Songs
 
 SONGS_LIST_VERSION_KEY = "songs:list:version"
 
@@ -66,7 +59,7 @@ def invalidate_songs_list_cache() -> None:
     _increment_version(SONGS_LIST_VERSION_KEY)
 
 
-# --- Tenant Songs ---
+# Tenant Songs
 
 TENANT_SONGS_LIST_VERSION_PREFIX = "tenant_songs:list:version"
 

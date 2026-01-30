@@ -16,10 +16,9 @@ from common.cache_utils import (
     get_song_list_params_hash,
     invalidate_songs_list_cache,
     invalidate_tenant_songs_list_cache,
-    SONGS_LIST_CACHE_TTL,
 )
 from music.models.tenant_song_models import TenantSong
-
+from common.constants import SONGS_LIST_CACHE_TTL
 
 class SongAPIView(APIView):
     """List/create songs."""

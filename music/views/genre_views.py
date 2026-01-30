@@ -11,11 +11,10 @@ from common.pagination import DefaultPagination
 from common.cache_utils import (
     get_genres_list_cache_key,
     invalidate_genres_list_cache,
-    GENRES_LIST_CACHE_TTL,
 )
 from music.models.genre_models import Genre
 from music.serializers.genre_serializers import GenreSerializer
-
+from common.constants import GENRES_LIST_CACHE_TTL
 
 class GenreListCreateAPIView(APIView):
     """List/create genres."""

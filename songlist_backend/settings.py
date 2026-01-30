@@ -67,8 +67,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "common.middleware.rate_limit_middleware.RateLimitMiddleware",  # Rate limiting for auth endpoints
     "common.middleware.logging_middleware.LoggingMiddleware",  # Request/response logging
+    "common.middleware.rate_limit_middleware.RateLimitMiddleware",  # Rate limiting for auth endpoints
     "common.middleware.error_middleware.JSONErrorMiddleware",  # Convert all errors to JSON
 ]
 

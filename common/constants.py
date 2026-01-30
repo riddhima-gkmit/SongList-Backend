@@ -30,3 +30,7 @@ ACCESS_TOKEN_DENYLIST_TTL = 720  # 12 minutes (denylist TTL for access tokens)
 # Phone Number Validation
 PHONE_NUMBER_DIGITS = 10  # Required number of digits in phone number
 
+# Cache TTLs (seconds)
+GENRES_LIST_CACHE_TTL = 3600  # 1 hour
+SONGS_LIST_CACHE_TTL = 300  # 5 minutes
+TENANT_SONGS_LIST_CACHE_TTL = 300  # 5 minutes

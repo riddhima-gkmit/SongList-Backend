@@ -12,13 +12,12 @@ from common.cache_utils import (
     get_tenant_songs_list_cache_key,
     get_song_list_params_hash,
     invalidate_tenant_songs_list_cache,
-    TENANT_SONGS_LIST_CACHE_TTL,
 )
 from music.models.tenant_song_models import TenantSong
 from music.models.playlist_song_models import PlaylistSong
 from music.serializers.tenant_song_serializers import TenantSongSerializer, TenantSongCreateSerializer
 from music.filters import SongQueryFilter
-
+from common.constants import TENANT_SONGS_LIST_CACHE_TTL
 
 class TenantSongListCreateAPIView(APIView):
     """List/link songs to tenant."""

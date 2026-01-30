@@ -9,7 +9,7 @@ from rest_framework import status as http_status
 from common.enums import UserRole
 from common.responses import success_response, error_response
 from common.cache_utils import invalidate_tenant_songs_list_cache
-from common.permissions import IsAdmin, IsOwnerOrAdmin, IsTenantUser
+from common.permissions import IsAdmin, IsTenantUser
 from common.pagination import DefaultPagination
 from music.models import SongRequest, RequestStatus, Song
 from music.serializers import (
