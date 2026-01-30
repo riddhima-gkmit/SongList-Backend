@@ -14,6 +14,13 @@ MAX_OTP_ATTEMPTS = 3
 
 # Payment
 PREMIUM_AMOUNT = 999.00  # Lifetime subscription price in INR
+ACCESS_TOKEN_BLACKLIST_TTL = 3600  # 1 hour (same as access token lifetime)
+MAX_OTP_ATTEMPTS = 3
+SUBSCRIPTION_CACHE_TTL = 300  # 5 minutes
+
+# Payment
+PREMIUM_AMOUNT = 999.00  # Lifetime subscription price in INR
+PAYMENT_CURRENCY = "INR"
 
 # Song validation
 MIN_RELEASE_YEAR = 1800  # Minimum allowed release year for songs
