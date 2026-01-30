@@ -1,5 +1,11 @@
+"""
+Payment serializers.
+"""
 from rest_framework import serializers
 from payments.models import PaymentTransaction, Subscription
+
+
+
 
 class PaymentTransactionSerializer(serializers.ModelSerializer):
     """Serializer for payment transaction."""

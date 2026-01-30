@@ -88,11 +88,11 @@ def send_verification_email(email: str, otp: str, tenant_name: str, tenant_id: s
             fail_silently=False,
         )
         
-        logger.info(f"Verification email with link sent to {email}")
+        logger.info("Verification email with link sent")
         return True
         
     except Exception as e:
-        logger.error(f"Failed to send verification email to {email}: {str(e)}")
+        logger.error("Failed to send verification email", exc_info=True)
         return False
 
 
@@ -153,11 +153,11 @@ def send_password_reset_email(email: str, otp: str, tenant_name: str) -> bool:
             fail_silently=False,
         )
         
-        logger.info(f"Password reset OTP sent to {email}")
+        logger.info("Password reset OTP sent")
         return True
         
     except Exception as e:
-        logger.error(f"Failed to send password reset OTP to {email}: {str(e)}")
+        logger.error("Failed to send password reset OTP", exc_info=True)
         return False
 
 
@@ -211,9 +211,9 @@ def send_welcome_email(email: str, username: str, tenant_name: str) -> bool:
             fail_silently=True,  # Don't break flow if welcome email fails
         )
         
-        logger.info(f"Welcome email sent to {email}")
+        logger.info("Welcome email sent")
         return True
         
     except Exception as e:
-        logger.error(f"Failed to send welcome email to {email}: {str(e)}")
+        logger.error("Failed to send welcome email", exc_info=True)
         return False

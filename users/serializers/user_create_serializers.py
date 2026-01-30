@@ -42,7 +42,10 @@ class UserCreateSerializer(serializers.Serializer):
     
     def validate(self, attrs):
         request = self.context['request']
-        
+        email = attrs.get('email')
+        user = User.all_users.filter(email=email).first()
+        if user and user.deleted_at is not None:
+            raise serializers.ValidationError("Email already exists and is deleted.")
         if request.user.role == UserRole.ADMIN:
             # Admin can only create LISTENER
             # Use admin's tenant

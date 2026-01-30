@@ -1,157 +1,120 @@
-"""
-Centralized logging configuration for the SongList application.
-
-Provides structured logging with:
-- Console and file handlers
-- Rotating file logs
-- Environment-based configuration
-- Application-specific loggers
-"""
 import os
 from pathlib import Path
 
+from django.conf import settings
 
-def get_logging_config(base_dir):
-    """
-    Get logging configuration dictionary.
-    
-    Args:
-        base_dir: Base directory path for log files
-        
-    Returns:
-        dict: Logging configuration for Django LOGGING setting
-    """
-    # Ensure logs directory exists
-    log_dir = Path(base_dir) / 'logs'
-    log_dir.mkdir(exist_ok=True)
-    
-    # Determine log level from environment
-    log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
-    
-    # Determine formatters
-    formatters = {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    }
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_FILE_ENABLED = os.getenv("LOG_FILE_ENABLED", "True") == "True"
 
-    # Add JSON formatter if library is available
-    try:
-        import pythonjsonlogger
-        formatters['json'] = {
-            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
-            'format': '%(asctime)s %(name)s %(levelname)s %(message)s',
-        }
-    except ImportError:
-        # Fallback to verbose if json logger is not available
-        pass
+
+def get_logging_config():
+    """
+    Configure logging for the application.
+
+    Strategy:
+    - Console: JSON format for development and production
+    - File: JSON format for production log aggregation
+    - All application logs go to unified file
+    - Django system logs go to console and file
+    """
+    BASE_DIR = Path(settings.BASE_DIR)
+    LOGS_DIR = BASE_DIR / "logs"
+    LOGS_DIR.mkdir(exist_ok=True)
 
     return {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': formatters,
-        'filters': {
-            'require_debug_false': {
-                '()': 'django.utils.log.RequireDebugFalse',
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "json": {
+                "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+                "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+                "datefmt": "%Y-%m-%dT%H:%M:%S",
             },
-            'require_debug_true': {
-                '()': 'django.utils.log.RequireDebugTrue',
-            },
-        },
-        'handlers': {
-            'console': {
-                'level': log_level,
-                'class': 'logging.StreamHandler',
-                'formatter': 'verbose',
-            },
-            'file': {
-                'level': 'INFO',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': str(log_dir / 'django.log'),
-                'maxBytes': 1024 * 1024 * 10,  # 10 MB
-                'backupCount': 5,
-                'formatter': 'verbose',
-            },
-            'error_file': {
-                'level': 'ERROR',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': str(log_dir / 'errors.log'),
-                'maxBytes': 1024 * 1024 * 10,  # 10 MB
-                'backupCount': 5,
-                'formatter': 'verbose',
-            },
-            'mail_admins': {
-                'level': 'ERROR',
-                'class': 'django.utils.log.AdminEmailHandler',
-                'filters': ['require_debug_false'],
+            "plain": {
+                "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
             },
         },
-        'loggers': {
-            # Django core loggers
-            'django': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "level": LOG_LEVEL,
+                "formatter": "json",
             },
-            'django.request': {
-                'handlers': ['console', 'file', 'error_file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-            'django.security': {
-                'handlers': ['console', 'error_file'],
-                'level': 'WARNING',
-                'propagate': False,
-            },
-            
-            # Application loggers
-            'users': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-            'music': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-            'payments': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-            'tenants': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-            
-            # Background tasks
-            'celery': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-            'tasks': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-            
-            # Email logging
-            'email': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
+            "app_file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": str(LOGS_DIR / "application.log"),
+                "maxBytes": 1024 * 1024 * 10,  # 10 MB
+                "backupCount": 5,
+                "formatter": "json",
+                "encoding": "utf-8",
+                "level": "NOTSET",
             },
         },
-        'root': {
-            'handlers': ['console', 'file', 'error_file'],
-            'level': log_level,
+        "loggers": {
+            "django": {
+                "handlers": ["app_file", "console"],
+                "level": "WARNING",
+                "propagate": False,
+            },
+            "django.request": {
+                "handlers": ["app_file", "console"],
+                "level": "ERROR",
+                "propagate": False,
+            },
+            "django.views": {
+                "handlers": ["app_file", "console"],
+                "level": "WARNING",
+                "propagate": False,
+            },
+            "django.server": {
+                "handlers": ["console"],
+                "level": "ERROR",
+                "propagate": False,
+            },
+            "request_logger": {
+                "handlers": ["app_file", "console"],
+                "level": LOG_LEVEL,
+                "propagate": False,
+            },
+            "payments": {
+                "handlers": ["app_file", "console"],
+                "level": LOG_LEVEL,
+                "propagate": False,
+            },
+            "users": {
+                "handlers": ["app_file", "console"],
+                "level": LOG_LEVEL,
+                "propagate": False,
+            },
+            "music": {
+                "handlers": ["app_file", "console"],
+                "level": LOG_LEVEL,
+                "propagate": False,
+            },
+            "tenants": {
+                "handlers": ["app_file", "console"],
+                "level": LOG_LEVEL,
+                "propagate": False,
+            },
+            "common": {
+                "handlers": ["app_file", "console"],
+                "level": LOG_LEVEL,
+                "propagate": False,
+            },
+            "celery": {
+                "handlers": ["app_file", "console"],
+                "level": LOG_LEVEL,
+                "propagate": False,
+            },
+            "celery.beat": {
+                "handlers": ["app_file", "console"],
+                "level": LOG_LEVEL,
+                "propagate": False,
+            },
+        },
+        "root": {
+            "handlers": ["app_file", "console"],
+            "level": LOG_LEVEL,
         },
     }

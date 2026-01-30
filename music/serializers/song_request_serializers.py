@@ -1,3 +1,4 @@
+"""Song Request serializers."""
 from rest_framework import serializers
 from music.models import SongRequest, Song
 

@@ -57,6 +57,12 @@ class VerifyEmailSerializer(serializers.Serializer):
         email = attrs['email']
         otp = attrs['otp']
         tenant_id = self.context.get('tenant_id', 'none')
+        try:
+            user = User.objects.get(email=email, tenant_id=tenant_id if tenant_id != 'none' else None)
+            if user.is_verified:
+                raise serializers.ValidationError("This account is already verified")
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
         if not Tenant.objects.filter(id=tenant_id).exists():
             raise serializers.ValidationError("Tenant not found.")
         cache_key = get_verify_email_key(tenant_id, email)
@@ -77,10 +83,6 @@ class VerifyEmailSerializer(serializers.Serializer):
                 f"Invalid or expired OTP. {remaining} attempt(s) remaining."
             )
         
-        try:
-            user = User.objects.get(email=email, tenant_id=tenant_id if tenant_id != 'none' else None)
-        except User.DoesNotExist:
-            raise serializers.ValidationError("User not found.")
         
         attrs['user'] = user
         return attrs

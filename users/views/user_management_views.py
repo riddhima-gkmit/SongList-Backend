@@ -1,3 +1,4 @@
+"""User management views."""
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
@@ -81,12 +82,12 @@ class DeletedUsersListAPIView(APIView):
                 tenant=request.user.tenant,
                 deleted_at__isnull=False,
             ).select_related('tenant', 'deleted_by').order_by('-deleted_at')
-
-        deletion_type = request.query_params.get('deletion_type')
-        if deletion_type == 'self':
-            deleted_users = deleted_users.filter(deleted_by=F('id'))
-        elif deletion_type == 'admin':
-            deleted_users = deleted_users.exclude(deleted_by=F('id'))
+        if request.user.role == UserRole.ADMIN:
+            deletion_type = request.query_params.get('deletion_type')
+            if deletion_type == 'self':
+                deleted_users = deleted_users.filter(deleted_by=F('id'))
+            elif deletion_type == 'admin':
+                deleted_users = deleted_users.exclude(deleted_by=F('id'))
 
         paginator = DefaultPagination()
         page = paginator.paginate_queryset(deleted_users, request)

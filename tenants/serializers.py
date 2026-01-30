@@ -1,3 +1,6 @@
+"""
+Tenant serializers for SUPER_ADMIN API.
+"""
 from rest_framework import serializers
 from tenants.models import Tenant
 

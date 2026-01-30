@@ -70,19 +70,24 @@ class PlaylistAPIView(APIView):
             
             # If admin, check if user_id is provided to create playlist for another user
             if request.user.role == UserRole.ADMIN:
-                user_id = request.data.get('user_id')
-                target_user = User.objects.filter(id=user_id).first()
-                if not target_user:
+                user_id = request.data.get('user_id', None)
+                if not user_id:
                     return error_response(
                         "user_id is required to create playlist for another user.",
                         status_code=status.HTTP_400_BAD_REQUEST
                     )
-                elif uuid.UUID(user_id) == request.user.id:
+                if uuid.UUID(user_id) == request.user.id:
                     return error_response(
                         "You cannot create playlist for yourself.",
                         status_code=status.HTTP_400_BAD_REQUEST
                     )
-                elif target_user.role == UserRole.ADMIN:
+                target_user = User.objects.filter(id=user_id, tenant_id=request.user.tenant_id).first()
+                if not target_user:
+                    return error_response(
+                        "User not found.",
+                        status_code=status.HTTP_400_BAD_REQUEST
+                    )
+                if target_user.role == UserRole.ADMIN:
                     return error_response(
                         "You cannot create playlist for another admin.",
                         status_code=status.HTTP_400_BAD_REQUEST
@@ -114,6 +119,8 @@ class PlaylistDetailAPIView(APIView):
 
     def get(self, request, id):
         """Retrieve a single playlist by ID."""
+        if request.user.role == UserRole.SUPER_ADMIN:
+            return error_response("Super Admins cannot see playlists.", status_code=status.HTTP_403_FORBIDDEN)
         try:
             playlist = Playlist.objects.get(id=id)
             self.check_object_permissions(request, playlist)
@@ -141,6 +148,8 @@ class PlaylistDetailAPIView(APIView):
 
     def patch(self, request, id):
         """Update a playlist (partial update). Owner and admin can update."""
+        if request.user.role == UserRole.SUPER_ADMIN:
+            return error_response("Super Admins cannot see playlists.", status_code=status.HTTP_403_FORBIDDEN)
         try:
             playlist = Playlist.objects.get(id=id)
             self.check_object_permissions(request, playlist)
@@ -181,11 +190,13 @@ class PlaylistDetailAPIView(APIView):
 
     def delete(self, request, id):
         """Soft delete a playlist."""
+        if request.user.role == UserRole.SUPER_ADMIN:
+            return error_response("Super Admins cannot see playlists.", status_code=status.HTTP_403_FORBIDDEN)
         try:
             playlist = Playlist.objects.get(id=id)
             self.check_object_permissions(request, playlist)
 
-            playlist.delete()  # Soft delete
+            playlist.delete(deleted_by=request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except Playlist.DoesNotExist:
@@ -218,6 +229,8 @@ class PlaylistSongAPIView(APIView):
 
     def get(self, request, id):
         """Get all songs in a playlist with pagination."""
+        if request.user.role == UserRole.SUPER_ADMIN:
+            return error_response("Super Admins cannot see playlists.", status_code=status.HTTP_403_FORBIDDEN)
         try:
             playlist = Playlist.objects.get(id=id)
             self.check_object_permissions(request, playlist)
@@ -233,7 +246,7 @@ class PlaylistSongAPIView(APIView):
             page = paginator.paginate_queryset(playlist_songs, request)
             
             # Serialize song data from playlist songs
-            from music.serializers.song import SongSerializer
+            from music.serializers.song_serializers import SongSerializer
             songs = [ps.tenant_song.song for ps in page]
             serializer = SongSerializer(songs, many=True)
             
@@ -257,6 +270,8 @@ class PlaylistSongAPIView(APIView):
 
     def post(self, request, id):
         """Add a song to playlist. Owner and admin can add songs."""
+        if request.user.role == UserRole.SUPER_ADMIN:
+            return error_response("Super Admins cannot see playlists.", status_code=status.HTTP_403_FORBIDDEN)
         try:
             playlist = Playlist.objects.get(id=id)
             self.check_object_permissions(request, playlist)
@@ -315,6 +330,8 @@ class PlaylistSongAPIView(APIView):
         
     def delete(self, request, playlist_id, song_id):
         """Remove a song from playlist. Owner and admin can remove songs."""
+        if request.user.role == UserRole.SUPER_ADMIN:
+            return error_response("Super Admins cannot see playlists.", status_code=status.HTTP_403_FORBIDDEN)
         try:
             playlist = Playlist.objects.get(id=playlist_id)
             self.check_object_permissions(request, playlist)

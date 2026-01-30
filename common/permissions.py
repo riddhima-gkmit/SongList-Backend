@@ -21,8 +21,6 @@ class IsSuperAdmin(BasePermission):
     - Admin user creation
     """
 
-    message = "Super Admin access required."
-
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == UserRole.SUPER_ADMIN
 
@@ -47,7 +45,6 @@ class IsAdmin(BasePermission):
 class IsAdminOrSuperAdmin(BasePermission):
     """Allows access to ADMIN or SUPER_ADMIN users."""
 
-    message = "Admin or Super Admin access required."
 
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role in [
@@ -64,8 +61,6 @@ class IsOwnerOrAdmin(BasePermission):
 
     Used for: Playlist detail operations
     """
-
-    message = "You do not have permission to access this resource."
 
     def has_object_permission(self, request, view, obj):
         user = request.user
@@ -93,7 +88,6 @@ class IsTenantUser(BasePermission):
     Strictly blocks SUPER_ADMIN from accessing tenant-scoped resources.
     """
 
-    message = "Access restricted to tenant members only."
 
     def has_permission(self, request, view):
         if not request.user.is_authenticated:

@@ -30,6 +30,7 @@ class AdminRestoreUserAPIView(APIView):
             else:
                 user = User.all_users.get(
                     id=user_id,
+                    role=UserRole.LISTENER,
                     tenant=request.user.tenant,
                     deleted_at__isnull=False,
                 )

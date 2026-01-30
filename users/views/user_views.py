@@ -1,10 +1,13 @@
 from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework import status as http_status
 from rest_framework.permissions import IsAuthenticated
+
 from users.serializers import UserSerializer, ChangePasswordSerializer
 from common.responses import success_response, error_response
 from common.constants import ACCESS_TOKEN_DENYLIST_TTL
 from common.enums import UserRole
+from django.core.cache import cache
 
 # User Self-Service APIs
 class UserMeAPIView(APIView):
@@ -39,7 +42,7 @@ class UserMeAPIView(APIView):
             return error_response("Admin and Super Admin accounts cannot be deleted.", status_code=http_status.HTTP_403_FORBIDDEN)
 
         request.user.delete()
-        return success_response(message="Account deleted.", status_code=http_status.HTTP_204_NO_CONTENT)
+        return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 
 class ChangePasswordAPIView(APIView):
@@ -50,7 +53,6 @@ class ChangePasswordAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        from django.core.cache import cache
 
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -61,7 +63,7 @@ class ChangePasswordAPIView(APIView):
         request.user.set_password(serializer.validated_data["new_password"])
         request.user.save()
 
-        # Denylist current access token for 30 minutes (matches access token lifetime)
+        # Denylist current access token for 12 minutes
         auth_header = request.META.get("HTTP_AUTHORIZATION")
         if auth_header and auth_header.startswith("Bearer "):
             access_token = auth_header.split(" ")[1]
