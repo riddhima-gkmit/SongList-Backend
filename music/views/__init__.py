@@ -1,6 +1,5 @@
-from .song import SongAPIView, SongDetailAPIView
-from .playlist import PlaylistAPIView, PlaylistDetailAPIView, PlaylistSongAPIView
-from .review import SongReviewAPIView
+from .song_views import SongAPIView, SongDetailAPIView
+from .playlist_views import PlaylistAPIView, PlaylistDetailAPIView, PlaylistSongAPIView
 
 __all__ = [
     "SongAPIView",
@@ -8,5 +7,4 @@ __all__ = [
     "PlaylistAPIView",
     "PlaylistDetailAPIView",
     "PlaylistSongAPIView",
-    "SongReviewAPIView",
 ]

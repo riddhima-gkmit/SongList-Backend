@@ -28,6 +28,12 @@ urlpatterns = [
     # Music APIs (songs, playlists, reviews)
     path("api/v1/", include("music.urls")),
 
+    # Tenant Management APIs (SUPER_ADMIN only)
+    path("api/v1/", include("tenants.urls")),
+
+    # Payment APIs
+    path("api/v1/payments/", include("payments.urls")),
+
     # Refresh token
     path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

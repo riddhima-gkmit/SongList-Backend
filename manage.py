@@ -9,12 +9,7 @@ def main():
     """Run administrative tasks."""
     dotenv.load_dotenv()
     
-    ENVIRONMENT = os.getenv('DJANGO_ENV', 'dev')
-
-    if ENVIRONMENT == 'prod':
-        settings_path = 'songlist_backend.settings.prod'
-    else:
-        settings_path = 'songlist_backend.settings.dev'
+    settings_path = 'songlist_backend.settings'
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_path)
     try:

@@ -1,5 +1,5 @@
-from .auth import RegisterSerializer, LoginSerializer, LogoutSerializer
-from .user import UserSerializer, ChangePasswordSerializer, AdminUserSerializer
+from .auth_serializers import RegisterSerializer, LoginSerializer, LogoutSerializer
+from .user_serializers import UserSerializer, ChangePasswordSerializer, AdminUserSerializer
 
 __all__ = [
     "RegisterSerializer",

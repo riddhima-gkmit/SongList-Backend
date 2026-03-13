@@ -1,104 +1,115 @@
-from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
 from common.enums import UserRole
-from common.models import BaseModel
-
-from common.constants import PHONE_MAX_LENGTH, ROLE_MAX_LENGTH
-
-class UserManager(BaseUserManager):
-    """
-    Custom manager for User model.
-    Handles user and superuser creation safely.
-    """
-    use_in_migrations = True
-
-    def create_user(self, username, email, password=None, role=UserRole.USER, **extra_fields):
-        if not email:
-            raise ValueError("Email is required")
-
-        if not username:
-            raise ValueError("Username is required")
-
-        email = self.normalize_email(email)
-
-        user = self.model(
-            username=username,
-            email=email,
-            role=role,
-            **extra_fields,
-        )
-
-        if password:
-            try:
-                validate_password(password, user=user)
-            except DjangoValidationError as e:
-                raise ValueError(
-                    f"Password validation failed: {', '.join(e.messages)}"
-                )
-            user.set_password(password)
-        else:
-            user.set_unusable_password()
-
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, username, email, password, **extra_fields):
-        """
-        Create superuser with ADMIN role.
-        """
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("is_active", True)
-
-        return self.create_user(
-            username=username,
-            email=email,
-            password=password,
-            role=UserRole.ADMIN,
-            **extra_fields,
-        )
+from common.models import SoftDeleteModel
+from users.managers import UserManager, AllUsersManager
 
 
-class User(AbstractUser, BaseModel):
-    """
-    Custom User model for SongList.
-    """
-
-    email = models.EmailField(unique=True)
-    phone_no = models.CharField(max_length=PHONE_MAX_LENGTH, blank=True)
-
-    role = models.CharField(
-        max_length=ROLE_MAX_LENGTH,
-        choices=UserRole.choices,
-        default=UserRole.USER,
+class User(AbstractUser, SoftDeleteModel):
+    """User model."""
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.CASCADE,
+        related_name='users',
+        null=True,
+        blank=True
     )
 
-    deleted_at = models.DateTimeField(null=True, blank=True)
+    email = models.EmailField()
+    phone_no = models.CharField(max_length=15, blank=True)
 
-    objects = UserManager()
+    role = models.CharField(
+        max_length=20,
+        choices=UserRole.choices,
+        default=UserRole.LISTENER,
+    )
+
+    is_verified = models.BooleanField(default=False)
+
+    deleted_by = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_users'
+    )
+
+    # Managers
+    objects = UserManager()  # Tenant-scoped manager
+    all_users = AllUsersManager()  # Cross-tenant manager for SUPER_ADMIN
+
+    # Username field for authentication (must be globally unique)
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']  # Required for createsuperuser
 
     class Meta:
         db_table = "users"
         ordering = ["-created_at"]
+        constraints = [
+            # Email must be unique per tenant
+            models.UniqueConstraint(
+                fields=['tenant', 'email'],
+                name='unique_email_per_tenant',
+                condition=models.Q(tenant__isnull=False)
+            ),
+            # Email must be globally unique for SUPER_ADMIN (tenant is null)
+            models.UniqueConstraint(
+                fields=['email'],
+                name='unique_email_for_super_admin',
+                condition=models.Q(tenant__isnull=True)
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['tenant', 'email']),
+            models.Index(fields=['tenant', 'role']),
+            models.Index(fields=['deleted_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.email} ({self.get_role_display()})"
 
     @transaction.atomic
-    def delete(self, using=None, keep_parents=False):
-        """
-        Soft delete the user.
-        """
+    def delete(self, using=None, keep_parents=False, deleted_by=None):
+        """Soft delete user."""
         self.deleted_at = timezone.now()
+        self.deleted_by = deleted_by
         self.is_active = False
-        self.songs.update(deleted_at = timezone.now())
-        self.playlists.update(deleted_at = timezone.now())
-        self.save(update_fields=["deleted_at", "is_active"])
+        
+        # Soft delete related objects
+        self.songs.update(deleted_at=timezone.now())
+        self.playlists.update(deleted_at=timezone.now())
+        
+        self.save(update_fields=["deleted_at", "deleted_by", "is_active", "updated_at"])
+
+    def restore(self):
+        """Restore user."""
+        self.deleted_at = None
+        self.deleted_by = None
+        self.is_active = True
+        self.save(update_fields=["deleted_at", "deleted_by", "is_active"])
 
     @property
     def is_admin(self):
-        """
-        Check if user has ADMIN role.
-        """
+        """Check if admin."""
         return self.role == UserRole.ADMIN
+
+    @property
+    def is_super_admin(self):
+        """Check if super admin."""
+        return self.role == UserRole.SUPER_ADMIN
+
+    @property
+    def is_listener(self):
+        """Check if listener."""
+        return self.role == UserRole.LISTENER
+
+    def clean(self):
+        """Validate tenant."""
+        super().clean()
+        if self.role == UserRole.SUPER_ADMIN and self.tenant is not None:
+            raise DjangoValidationError("SUPER_ADMIN users cannot belong to a tenant")
+        if self.role != UserRole.SUPER_ADMIN and self.tenant is None:
+            raise DjangoValidationError("LISTENER and ADMIN users must belong to a tenant")
