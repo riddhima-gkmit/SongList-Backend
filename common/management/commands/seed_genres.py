@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from music.models.genre import Genre
+from music.models import Genre
 
 class Command(BaseCommand):
     help = 'Seeds the database with 15-20 popular genres'

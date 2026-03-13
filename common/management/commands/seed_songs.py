@@ -1,8 +1,8 @@
 import random
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from music.models.song import Song
-from music.models.genre import Genre
+from music.models import Song
+from music.models import Genre
 from users.models import User
 from common.enums import UserRole, SongVisibility
 from common.constants import MIN_RELEASE_YEAR
