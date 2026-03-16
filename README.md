@@ -1,165 +1,241 @@
-# SongList Backend
+# SongList – Backend (Django REST API)
 
-Multi-tenant music content management REST API built with **Django** and **Django REST Framework**. Organizations (tenants) manage users, song catalogs, playlists, song requests, and premium subscriptions with strict isolation and role-based access.
+SongList is a **music content management platform** that allows users to submit songs, organize them into playlists, and enables admins to moderate and manage content.
+This repository contains the **backend REST API**, built using **Django REST Framework**, providing secure authentication, role-based access control, song moderation workflows, and playlist management.
 
 ---
 
 ## Features
 
-- **Multi-tenancy:** Tenant isolation; URL-based tenant context for auth (`/tenant/<tenant_id>/auth/...`).
-- **Roles:** LISTENER (self-serve, playlists, song requests), ADMIN (tenant users, content, payments), SUPER_ADMIN (tenants, GLOBAL songs, genres, platform metrics).
-- **Auth:** OTP-based login and email verification; JWT access/refresh tokens; token blacklist and denylist; password reset.
-- **Songs:** GLOBAL (platform) vs TENANT (per-tenant) visibility; tenant-song links; filters (title, artist, genre, album).
-- **Playlists:** User-owned; LISTENER own only, ADMIN full CRUD in tenant; only approved tenant songs.
-- **Song requests:** Users request → admins approve/reject/fulfill (link or create song).
-- **Payments:** Razorpay payment links, webhooks, subscription status; per-tenant premium.
+### Authentication & Authorization
+
+* Secure JWT authentication using **SimpleJWT**
+* Access & refresh token support
+* Role-based access control (User / Admin)
+* Unique email-based user accounts
+* Object-level permissions (Owner or Admin)
+
+---
+
+### Song Management
+
+* Submit songs for admin approval
+* Song lifecycle management (`PENDING`, `APPROVED`, `REJECTED`)
+* Update song details (approval required)
+* Soft delete support
+* Advanced filtering (artist, genre, album)
+
+---
+
+### Playlist Management
+
+* Create and manage user playlists
+* Add and remove approved songs
+* Prevent duplicate songs in playlists
+* Soft delete playlists
+
+---
+
+### Admin Panel APIs
+
+* Manage users
+* Approve or reject songs
+* Access all songs and playlists
+* System-level overview endpoints
 
 ---
 
 ## Tech Stack
 
-| Category | Technology |
-|----------|------------|
-| Backend | Django, Django REST Framework |
-| Auth | SimpleJWT, pyotp, Redis (OTP cache, token denylist) |
-| Database | PostgreSQL |
-| Cache / broker | Redis (django-redis, Celery) |
-| Payments | Razorpay |
-| Tasks | Celery, Celery Beat |
-| Tooling | uv, python-dotenv |
-
-**Python:** 3.13+
-
----
-
-## Prerequisites
-
-- Python 3.13+
-- PostgreSQL
-- Redis (cache, Celery broker)
-- Razorpay account (sandbox for dev)
-
----
-
-## Quick Start
-
-1. **Clone and install**
-   ```bash
-   git clone https://github.com/riddhima-gkmit/SongList-Backend.git
-   cd SongList-Backend
-   uv sync
-   ```
-
-2. **Environment**
-   - Copy `.env.example` to `.env`.
-   - Set at least: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `REDIS_URL`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`.
-   - For local dev: `EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend`.
-
-3. **Database**
-   ```bash
-   uv run python manage.py migrate
-   ```
-
-4. **Superuser (SUPER_ADMIN)**
-   ```bash
-   uv run python manage.py createsuperuser
-   ```
-   Use email as identifier. No tenant.
-
-5. **Default tenant** (Django shell)
-   ```bash
-   uv run python manage.py shell
-   ```
-   ```python
-   from tenants.models import Tenant
-   t = Tenant.objects.create(name="Default Tenant", is_active=True)
-   print(t.id)  # use for tenant-scoped auth URLs
-   ```
-
-6. **Run server**
-   ```bash
-   uv run python manage.py runserver
-   ```
-   API base: `http://localhost:8000/api/v1/`
-
-7. **(Optional) Celery**
-   ```bash
-   celery -A songlist_backend worker -l info
-   celery -A songlist_backend beat -l info
-   ```
-
----
-
-## Seeding
-
-| Command | Purpose |
-|---------|---------|
-| `uv run python manage.py seed_genres` | Seed genres (run first) |
-| `uv run python manage.py seed_tenants` | Seed tenants |
-| `uv run python manage.py seed_songs` | Seed songs (requires superuser + genres) |
+| Category              | Technology            |
+| --------------------- | --------------------- |
+| Backend               | Django REST Framework |
+| Authentication        | SimpleJWT             |
+| Database              | PostgreSQL            |
+| Dependency Management | uv                    |
+| Environment           | Python 3.12+          |
+| API Style             | RESTful JSON APIs     |
 
 ---
 
 ## Project Structure
 
 ```
-SongList-Backend/
+
+songlist/
 ├── manage.py
-├── pyproject.toml, uv.lock
-├── songlist_backend/     # settings, urls, celery
-├── common/               # base models, permissions, pagination, logging, middleware, seed commands
-├── users/                # auth, user management, filters
-├── tenants/              # tenant CRUD (SUPER_ADMIN)
-├── music/                # genres, songs, tenant_songs, playlists, song_requests, filters
-├── payments/             # Razorpay links, webhooks, subscription status
-└── .env.example
+├── .env
+├── .gitignore
+├── README.md
+
+├── pyproject.toml          # uv / project metadata & dependencies
+├── uv.lock                 # Locked dependency versions (auto-generated)
+
+├── .venv/                  # Virtual environment created by uv (local only)
+│   ├── bin/
+│   ├── lib/
+│   └── pyvenv.cfg
+
+├── config/                     # Project-level configuration
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── wsgi.py
+│   ├── urls.py
+│   └── settings/
+│       ├── __init__.py
+│       ├── base.py              # Shared settings
+│       ├── dev.py               # Development settings
+│       └── prod.py              # Production settings
+
+├── common/                      # Shared utilities (optional but clean)
+│   ├── __init__.py
+│   ├── permissions.py           # Custom permissions
+│   ├── pagination.py
+│   ├── responses.py             # Standard API responses
+│   └── enums.py                 # Global enums (roles, status)
+
+├── users/                       # Authentication & user management
+│   ├── __init__.py
+│   ├── admin.py                 # Admin panel unused (optional)
+│   ├── apps.py
+│   ├── models.py
+│   ├── serializers.py
+│   ├── views.py
+│   ├── urls.py
+│   ├── permissions.py
+│   ├── enums.py                 # UserRole enum
+│   └── constants.py
+
+├── music/                       # Songs & playlists
+│   ├── __init__.py
+│   ├── apps.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── genre.py
+│   │   ├── song.py
+│   │   ├── playlist.py
+│   │   └── playlist_song.py
+│   ├── serializers/
+│   │   ├── __init__.py
+│   │   ├── genre.py
+│   │   ├── song.py
+│   │   └── playlist.py
+│   ├── views/
+│   │   ├── __init__.py
+│   │   ├── song.py
+│   │   ├── playlist.py
+│   │   └── review.py            # Admin approve/reject logic
+│   ├── urls.py
+│   ├── permissions.py
+│   ├── enums.py                 # SongStatus enum
+│   └── constants.py
+
+
+```
+
+---
+
+## Setup & Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone git@github.com:riddhima-gkmit/SongList-Backend.git
+cd songlist-backend
+```
+
+---
+
+### 2. Create and Activate Virtual Environment (uv)
+
+```bash
+uv venv
+uv sync
+```
+
+---
+
+### 3. Configure Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+DEBUG=True
+SECRET_KEY=your-secret-key
+DATABASE_URL=postgres://user:password@localhost:5432/songlist
+```
+
+---
+
+### 4. Run Database Migrations
+
+```bash
+python manage.py migrate
+```
+
+---
+
+### 5. Create Admin User
+
+```bash
+python manage.py createsuperuser
+```
+
+---
+
+### 6. Start Development Server
+
+```bash
+python manage.py runserver
+```
+
+API is now available at:
+
+```
+http://localhost:8000/api/v1/
 ```
 
 ---
 
 ## API Overview
 
-Base URL: **`/api/v1`**. JWT Bearer auth for protected routes.
+### Authentication APIs
 
-| Group | Examples |
-|-------|----------|
-| **Auth** | `POST /tenant/<tenant_id>/auth/register/`, `.../login/`, `.../verify-email/`, `.../password-reset/`; `POST /auth/logout/`, `POST /auth/super-admin/login/` (+ verify-otp); `POST /token/refresh/` |
-| **Users** | `GET|PATCH|DELETE /users/me/`, `POST /users/me/change-password/`; `GET|POST /users/`, `GET|PATCH|DELETE /users/<id>/`, `GET /users/deleted/`, `POST /users/<id>/restore/` |
-| **Tenants** | `GET|POST /tenants/`, `GET|PATCH|DELETE /tenants/<id>/`, `PATCH .../activate/`, `.../deactivate/` |
-| **Admins** | `GET /super-admin/admins/` |
-| **Songs** | `GET|POST /songs/`, `GET|PATCH|DELETE /songs/<id>/`, `POST /songs/bulk-add/` |
-| **Tenant songs** | `GET|POST /tenant/songs/`, `GET|DELETE /tenant/songs/<id>/`, `POST /tenant/songs/bulk-delete/` |
-| **Playlists** | `GET|POST /playlists/`, `GET|PATCH|DELETE /playlists/<id>/`, `GET|POST|DELETE /playlists/<id>/songs/` |
-| **Song requests** | `GET|POST /song-requests/`, `GET|PATCH|DELETE /song-requests/<id>/`, `POST .../review/`, `.../fulfill/` |
-| **Genres** | `GET|POST /genres/`, `GET|PATCH|DELETE /genres/<id>/` |
-| **Payments** | `POST /payments/create-payment-link/`, `GET /payments/subscription/`, `POST /payments/webhook/razorpay/`; `GET /payments/super-admin/subscriptions/`, `.../payments/` |
-
-List endpoints support `page`, `page_size`. Many support extra query filters (e.g. `is_active`, `name`, `email` for users/admins; `title`, `artist`, `genre`, `album` for songs).
+* Register
+* Login
+* Token refresh
+* Change password
+* Logout
 
 ---
 
-## Environment Variables
+### User APIs
 
-| Variable | Description |
-|----------|-------------|
-| `SECRET_KEY` | Django secret key |
-| `DEBUG` | `1` / `0` |
-| `ALLOWED_HOSTS` | Comma-separated hosts |
-| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | PostgreSQL |
-| `REDIS_URL` | Redis URL |
-| `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` | Celery |
-| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Razorpay |
-| `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, etc. | SMTP / console |
-| `FRONTEND_URL` | Frontend base URL (e.g. email links) |
+* Self-service profile management (`/users/me`)
+* Admin user management (`/users`)
 
-See `.env.example` for a full template.
+---
+
+### Song APIs
+
+* Submit songs
+* List songs (user → own, admin → all)
+* Retrieve, update, and delete songs
+* Admin approval workflow
+
+---
+
+### Playlist APIs
+
+* Create and manage playlists
+* Add or remove songs
 
 ---
 
 ## Documentation
 
-- **Full Documentation:** [Songlist SaaS Documentation](https://riddhima-gkmit.github.io/Songlist-Multitenant-Documentation/functional-docs/).
-
+Full documentation is available at:
+https://riddhima-gkmit.github.io/SongList-Documentation/
 
 ---
 
