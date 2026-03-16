@@ -8,10 +8,17 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 """
 
 import os
+import dotenv
+dotenv.load_dotenv()
+
 from django.core.wsgi import get_wsgi_application
 
+ENVIRONMENT = os.getenv('DJANGO_ENV', 'dev')
 
-settings_path = 'songlist_backend.settings'
+if ENVIRONMENT == 'prod':
+    settings_path = 'songlist_backend.settings.prod'
+else:
+    settings_path = 'songlist_backend.settings.dev'
 
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings_path)
