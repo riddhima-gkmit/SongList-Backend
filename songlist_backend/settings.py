@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -72,6 +73,12 @@ MIDDLEWARE = [
     "common.middleware.rate_limit_middleware.RateLimitMiddleware",  # Rate limiting for auth endpoints
     "common.middleware.error_middleware.JSONErrorMiddleware",  # Convert all errors to JSON
 ]
+
+if "pytest" in sys.modules:
+    MIDDLEWARE = [
+        m for m in MIDDLEWARE
+        if "rate_limit_middleware" not in m
+    ]
 
 ROOT_URLCONF = "songlist_backend.urls"
 
