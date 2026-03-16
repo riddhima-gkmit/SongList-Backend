@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 """
 Logging middleware for request/response observability.
 
@@ -17,7 +15,6 @@ Red flags avoided:
 - Uses logging framework, not print()
 - Correlation ID ties all logs for a request
 """
->>>>>>> Stashed changes
 import logging
 import time
 import uuid
@@ -117,8 +114,6 @@ class LoggingMiddleware(MiddlewareMixin):
             ip = request.META.get("REMOTE_ADDR", "")
         return ip
 
-<<<<<<< Updated upstream
-=======
     def _log_request(self, request):
         """
         Log incoming request metadata (no body, no query params).
@@ -258,4 +253,3 @@ class LoggingMiddleware(MiddlewareMixin):
         if hasattr(request, "user") and request.user.is_authenticated:
             return str(request.user.id)
         return None
->>>>>>> Stashed changes
