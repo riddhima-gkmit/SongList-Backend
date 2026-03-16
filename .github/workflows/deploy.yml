@@ -196,7 +196,7 @@ jobs:
             docker pull ${{ env.IMAGE_NAME }}:latest
 
             # Bring up full stack without rebuilding (use pulled image)
-            docker compose up -d --no-build
+            docker-compose up -d --no-build
 
             # Clean up dangling images to save disk space
             docker image prune -f
