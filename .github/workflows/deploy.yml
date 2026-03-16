@@ -9,7 +9,7 @@ name: Deploy SongList Backend to EC2
 
 on:
   push:
-    branches: [main, ci-test]
+    branches: [main, ci-cd]
   pull_request:
     types: [closed]
     branches: [main]
