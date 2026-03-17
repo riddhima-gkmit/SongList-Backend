@@ -1,21 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # SongList Backend — CI/CD Pipeline
 #
-# Triggers: push to `main` / `ci-cd`  |  PR merged into `main`
+# Triggers: push to `main` / `ci-test`  |  PR merged into `main`
 # Jobs:     test → build & push to GHCR → SSH deploy to EC2
-#
-# Required GitHub Secrets (Settings → Secrets and variables → Actions):
-#   EC2_HOST                  EC2 public IP or hostname
-#   EC2_USER                  SSH username (e.g. ubuntu)
-#   EC2_SSH_KEY               Private key for SSH access
-#   GHCR_PAT                  GitHub Personal Access Token (read:packages)
-#   SECRET_KEY                Django SECRET_KEY
-#   ALLOWED_HOSTS             Comma-separated allowed hostnames
-#   DB_NAME / DB_USER / DB_PASSWORD   PostgreSQL credentials
-#   EMAIL_HOST / EMAIL_PORT / EMAIL_HOST_USER / EMAIL_HOST_PASSWORD / DEFAULT_FROM_EMAIL
-#   RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET / RAZORPAY_WEBHOOK_SECRET
-#   FRONTEND_URL
-#   NEW_RELIC_LICENSE_KEY     New Relic ingest license key
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: Deploy SongList Backend to EC2
@@ -198,16 +185,9 @@ jobs:
             RATE_LIMIT_ENABLE=1
             RATE_LIMIT_LOGIN_ATTEMPTS=5
             RATE_LIMIT_LOGIN_WINDOW=300
-            # ── New Relic APM ──────────────────────────────────────────────
-            # Picked up by docker-compose environment: blocks for web,
-            # celery-worker, and celery-beat at container start.
+            # New Relic APM
             NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }}
             NEW_RELIC_APP_NAME=songlist
-            NEW_RELIC_MONITOR_MODE=true
-            NEW_RELIC_LOG=stdout
-            NEW_RELIC_LOG_LEVEL=info
-            NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=true
-            # ──────────────────────────────────────────────────────────────
             # Tells docker-compose which image to use (skips local build)
             SONGLIST_IMAGE=${{ env.IMAGE_NAME }}:latest
             EOF
