@@ -16,7 +16,6 @@ services:
       - .env
     environment:
       DJANGO_SETTINGS_MODULE: songlist_backend.settings
-      NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
     volumes:
       - static_data:/app/staticfiles
       - media_data:/app/media
@@ -35,8 +34,6 @@ services:
     command: uv run newrelic-admin run-program celery -A songlist_backend worker -l info
     env_file:
       - .env
-    environment:
-      NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
     depends_on:
       - db
       - redis
@@ -50,8 +47,6 @@ services:
     command: uv run newrelic-admin run-program celery -A songlist_backend beat -l info
     env_file:
       - .env
-    environment:
-      NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
     depends_on:
       - db
       - redis

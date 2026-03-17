@@ -37,8 +37,7 @@ EXPOSE 8000
 
 # Default environment variables (override in deployment)
 ENV DJANGO_SETTINGS_MODULE=songlist_backend.settings \
-    DJANGO_DEBUG=False \
-    NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
+    DJANGO_DEBUG=False
 
 # Run database migrations, collect static files, then start Gunicorn
 # wrapped by the New Relic admin to bootstrap the agent before the app loads
