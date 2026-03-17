@@ -207,3 +207,14 @@ marimo/_lsp/
 __marimo__/
 
 .DS_Store
+
+
+# Load Testing
+locust/
+
+
+logs/
+
+newrelic.ini
+
+profiles/

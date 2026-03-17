@@ -16,9 +16,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
 from rest_framework_simplejwt.views import TokenRefreshView
 
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
+
 urlpatterns = [
+    # Health check (no auth required — used by load balancers, Locust, etc.)
+    path("api/v1/health/", health_check, name="health_check"),
+
     # Django admin (optional, mainly for debugging)
     path("admin/", admin.site.urls),
 
@@ -36,4 +45,7 @@ urlpatterns = [
 
     # Refresh token
     path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # Silk API for profiling
+    # path('silk/', include('silk.urls', namespace='silk')),
 ]

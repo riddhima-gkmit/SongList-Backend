@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    # "silk",
     # Project apps
     "common",
     "tenants",
@@ -61,6 +62,8 @@ INSTALLED_APPS = [
 # Middleware
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # 'silk.middleware.SilkyMiddleware',
+    # "pyinstrument.middleware.ProfilerMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "common.middleware.token_denylist_middleware.TokenDenylistMiddleware",  # Check denylisted tokens first
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -208,3 +211,7 @@ RATE_LIMIT_LOGIN_WINDOW = int(os.getenv('RATE_LIMIT_LOGIN_WINDOW', 60))  # 1 min
 
 # Logging Configuration
 LOGGING = get_logging_config()
+
+# Pyinstrument Configuration
+# PYINSTRUMENT_PROFILE_DIR = 'profiles'
+# PYINSTRUMENT_FILENAME = "{total_time:.3f}s {path} {timestamp:.0f}.html"

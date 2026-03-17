@@ -18,11 +18,15 @@ dependencies = [
     "pytest-cov>=7.0.0",
     "gunicorn>=25.1.0",
     "whitenoise>=6.12.0",
+    "newrelic>=12.0.0",
+    "django-silk>=5.5.0",
+    "pyinstrument>=5.1.2",
 ]
 
 [dependency-groups]
 dev = [
     "factory-boy>=3.3.3",
+    "locust>=2.43.3",
     "pytest>=9.0.2",
     "pytest-django>=4.12.0",
 ]
