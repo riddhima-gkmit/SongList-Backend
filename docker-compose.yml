@@ -16,7 +16,12 @@ services:
       - .env
     environment:
       DJANGO_SETTINGS_MODULE: songlist_backend.settings
+      # New Relic — explicitly declared so the agent finds them at startup
       NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-songlist}
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: info
     volumes:
       - static_data:/app/staticfiles
       - media_data:/app/media
@@ -36,7 +41,12 @@ services:
     env_file:
       - .env
     environment:
+      # New Relic — separate app name so worker appears distinctly in the dashboard
       NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-songlist}-celery-worker
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: info
     depends_on:
       - db
       - redis
@@ -51,7 +61,12 @@ services:
     env_file:
       - .env
     environment:
+      # New Relic — separate app name so beat appears distinctly in the dashboard
       NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-songlist}-celery-beat
+      NEW_RELIC_LOG: stdout
+      NEW_RELIC_LOG_LEVEL: info
     depends_on:
       - db
       - redis
