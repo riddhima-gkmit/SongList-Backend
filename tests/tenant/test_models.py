@@ -17,7 +17,7 @@ class TestTenantCreation:
 
     def test_tenant_is_active_by_default(self):
         tenant = TenantFactory()
-        assert tenant.is_active is False
+        assert tenant.is_active is True
 
     def test_tenant_has_uuid_primary_key(self):
         tenant = TenantFactory()
