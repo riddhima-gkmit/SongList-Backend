@@ -218,3 +218,5 @@ logs/
 newrelic.ini
 
 profiles/
+
+documentation/

@@ -8,10 +8,9 @@ from unittest.mock import MagicMock
 from django.urls import reverse
 
 from common.enums import PaymentStatus
-from payments.models import Subscription, WebhookEvent
+from payments.models import WebhookEvent
 from tests.factories.payment_factory import PaymentTransactionFactory, SubscriptionFactory
 from tests.factories.tenant_factory import TenantFactory
-from tests.factories.user_factory import AdminUserFactory, SuperAdminFactory, UserFactory
 
 
 def _make_webhook_body_and_sig(payload: dict, secret: str = "test_webhook_secret") -> tuple[bytes, str]:
