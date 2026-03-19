@@ -38,7 +38,12 @@ class JSONErrorMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        
+
+        # Only convert errors for API endpoints; leave admin and other HTML views alone
+        path = request.path or ""
+        if not path.startswith("/api/"):
+            return response
+
         status_code = response.status_code
         # Check if response is an error status (400-599)
         if not (HTTPStatus.BAD_REQUEST.value <= status_code <= HTTPStatus.INTERNAL_SERVER_ERROR.value):
