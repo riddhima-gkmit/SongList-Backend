@@ -26,6 +26,10 @@ DEBUG = os.getenv("DEBUG", "1") == "1"
 # Allowed hosts
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
+# CSRF trusted origins (for HTTPS admin / API)
+_csrf_trusted_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = _csrf_trusted_origins.split(",") if _csrf_trusted_origins else []
+
 # Database
 DATABASES = {
     "default": {
