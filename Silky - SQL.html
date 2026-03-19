@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<!-- saved from url=(0076)http://localhost:8000/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/sql/ -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Silky - SQL - /api/v1/users/</title>
+    <link rel="stylesheet" href="./Silky - SQL _files/fonts.css">
+    <link rel="stylesheet" href="./Silky - SQL _files/colors.css">
+    <link rel="stylesheet" href="./Silky - SQL _files/jquery-ui-1.13.2.min.css">
+    <link rel="icon" type="image/png" href="http://localhost:8000/static/silk/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="http://localhost:8000/static/silk/favicon-16x16.png" sizes="16x16">
+    <link rel="stylesheet" href="./Silky - SQL _files/base.css">
+    
+    <link rel="stylesheet" href="./Silky - SQL _files/sql.css">
+    <link rel="stylesheet" href="./Silky - SQL _files/colors.css">
+    <link rel="stylesheet" href="./Silky - SQL _files/numeric.css">
+    <link rel="stylesheet" href="./Silky - SQL _files/summary.css">
+    <link rel="stylesheet" href="./Silky - SQL _files/cell.css">
+
+    <script src="./Silky - SQL _files/jquery-3.6.0.min.js"></script>
+    <script src="./Silky - SQL _files/jquery-ui-1.13.2.min.js"></script>
+    <script src="./Silky - SQL _files/cell.js"></script>
+    <script src="./Silky - SQL _files/base.js"></script>
+    
+  <script type="text/javascript" src="./Silky - SQL _files/sortable.js"></script>
+  
+    
+  <script src="./Silky - SQL _files/sql.js"></script>
+
+
+</head>
+
+<body onload="" class="">
+
+
+
+<div id="content">
+    <div id="header">
+        <div class="menu">
+            
+    
+        
+<a href="http://localhost:8000/silk/requests/">
+    <div class="menu-item selectable-menu-item">
+        <div class="menu-item-outer">
+            <div class="menu-item-inner">←</div>
+        </div>
+    </div>
+</a>
+<a href="http://localhost:8000/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/">
+    <div class="menu-item  selectable-menu-item">
+        <div class="menu-item-outer">
+            <div class="menu-item-inner">Details</div>
+        </div>
+    </div>
+</a>
+<a href="http://localhost:8000/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/sql/">
+    <div class="menu-item menu-item-selected selectable-menu-item">
+        <div class="menu-item-outer">
+            <div class="menu-item-inner">SQL</div>
+        </div>
+    </div>
+</a>
+<a href="http://localhost:8000/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/profiling/">
+    <div class="menu-item  selectable-menu-item">
+        <div class="menu-item-outer">
+            <div class="menu-item-inner">Profiling</div>
+        </div>
+    </div>
+</a>
+
+<a href="http://localhost:8000/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/cprofile/">
+    <div class="menu-item  selectable-menu-item">
+        <div class="menu-item-outer">
+            <div class="menu-item-inner">CProfile</div>
+        </div>
+    </div>
+</a>
+
+    
+
+        </div>
+        <div id="filter" class="menu">
+            
+    <form id="filter-form" action="http://localhost:8000/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/sql/" method="get"></form>
+
+    <div class="menu-item">
+        <div class="menu-item-outer">
+            <div class="menu-item-inner">
+                <label>Show:
+                    <select name="per_page" form="filter-form" onchange="this.form.submit();">
+                        
+                            <option value="5">5</option>
+                        
+                            <option value="10">10</option>
+                        
+                            <option value="25">25</option>
+                        
+                            <option value="100">100</option>
+                        
+                            <option value="200" selected="">200</option>
+                        
+                            <option value="500">500</option>
+                        
+                            <option value="1000">1000</option>
+                        
+                    </select>
+                </label>
+            </div>
+        </div>
+    </div>
+    
+            
+
+        </div>
+    </div>
+    <div id="data">
+        
+    
+        
+    <div class="wrapper">
+        
+            <div id="query-div">
+            <div id="query-info-div">
+        
+        
+        
+            
+<div class="cell">
+    <div class="timestamp-div">2026.03.19 00:11.791</div>
+    <div class="method-div">200 GET</div>
+    <div class="path-div">/api/v1/users/</div>
+    <div class="time-taken-div">
+        <span class="numeric very-good-font-color">34<span class="unit">ms</span></span>
+        <span class="appendage">overall<span class="meta"></span></span>
+    </div>
+    <div class="time-taken-queries-div">
+        <span class="numeric very-good-font-color">7<span class="unit">ms</span></span>
+        <span class="appenage">on queries<span class="meta"></span></span></div>
+    <div class="num-queries-div">
+        <span class="numeric very-good-font-color">4</span>
+        <span class="appendage">queries<span class="meta"></span>
+    </span></div>
+</div>
+
+        
+        
+            </div>
+            </div>
+        
+        <div id="table-div">
+
+            <table class="sortable"><thead><tr>
+                    <th class="left-aligned">At</th>
+                    <th class="left-aligned">Action</th>
+                    <th class="left-aligned">Tables</th>
+                    <th class="right-aligned">Num. Joins</th>
+                    <th class="right-aligned">Execution Time (ms)</th>
+                </tr></thead>
+                <tbody>
+                
+                    
+                    <tr class="data-row" data-sql-detail-url="/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/sql/68/">
+                        <td class="left-aligned">+0:00:00.028153</td>
+                        <td class="left-aligned">SELECT</td>
+                        <td class="left-aligned">"users"</td>
+                        <td class="right-aligned">0</td>
+                        <td class="right-aligned">1.478000</td>
+                    </tr>
+                
+                    
+                    <tr class="data-row" data-sql-detail-url="/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/sql/67/">
+                        <td class="left-aligned">+0:00:00.024786</td>
+                        <td class="left-aligned">SELECT</td>
+                        <td class="left-aligned">"__count", "users"</td>
+                        <td class="right-aligned">0</td>
+                        <td class="right-aligned">0.934000</td>
+                    </tr>
+                
+                    
+                    <tr class="data-row" data-sql-detail-url="/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/sql/66/">
+                        <td class="left-aligned">+0:00:00.018142</td>
+                        <td class="left-aligned">SELECT</td>
+                        <td class="left-aligned">"tenants"</td>
+                        <td class="right-aligned">0</td>
+                        <td class="right-aligned">1.103000</td>
+                    </tr>
+                
+                    
+                    <tr class="data-row" data-sql-detail-url="/silk/request/27112274-4509-41f6-96f9-3b2a40b3b1da/sql/65/">
+                        <td class="left-aligned">+0:00:00.012068</td>
+                        <td class="left-aligned">SELECT</td>
+                        <td class="left-aligned">"users"</td>
+                        <td class="right-aligned">0</td>
+                        <td class="right-aligned">3.495000</td>
+                    </tr>
+                
+
+            </tbody><tfoot></tfoot></table>
+
+            
+        </div>
+    </div>
+
+
+
+
+
+
+    </div>
+</div>
+
+
+
+</body></html>
